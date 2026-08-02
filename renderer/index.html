@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'" />
+    <title>SD.cpp Studio</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <header class="app-header">
+        <div class="brand">
+            <div class="logo">SD</div>
+            <div class="brand-text">
+                <h1>SD.cpp Studio</h1>
+                <span class="subtitle">stable-diffusion.cpp image generation</span>
+            </div>
+        </div>
+        <div class="server-status">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Offline</span>
+            <span class="server-url" id="serverUrl"></span>
+        </div>
+        <div class="header-actions">
+            <button class="btn" id="btnSettings" title="Backend &amp; server settings">&#9881; Settings</button>
+            <button class="btn" id="btnStart" title="Start the sd-server backend">Start Server</button>
+            <button class="btn btn-danger" id="btnStop" title="Stop the sd-server backend" disabled>Stop Server</button>
+        </div>
+    </header>
+
+    <div class="alert-banner" id="backendAlert" hidden></div>
+
+    <main class="app-body">
+        <!-- ============ LEFT: Models + Log ============ -->
+        <aside class="panel left-panel">
+            <section class="card collapsible" id="modelsCard">
+                <button class="card-toggle" type="button" data-target="modelsCardBody">
+                    <span class="toggle-arrow">&#9662;</span> Models
+                </button>
+                <div class="card-body" id="modelsCardBody">
+                    <div class="field-row">
+                        <label>Diffusion model <span class="hint">(--diffusion-model)</span></label>
+                        <select id="selModel"></select>
+                    </div>
+                    <div class="field-row">
+                        <label>Text encoder <span class="hint">(--llm)</span></label>
+                        <select id="selTextEncoder"></select>
+                    </div>
+                    <div class="field-row">
+                        <label>VAE <span class="hint">(--vae)</span></label>
+                        <select id="selVae"></select>
+                    </div>
+                    <div class="field-row lora-field">
+                        <label>LoRA <span class="hint">(stack multiple with +)</span></label>
+                        <div id="loraSlots" class="lora-slots"></div>
+                        <button class="btn btn-sm" id="btnAddLora" title="Add another LoRA slot">+ Add LoRA</button>
+                    </div>
+                    <p class="field-note">Model changes require a server restart.</p>
+                </div>
+            </section>
+
+            <section class="card collapsible collapsed" id="logCard">
+                <button class="card-toggle" type="button" data-target="logCardBody">
+                    <span class="toggle-arrow">&#9656;</span> Server Log
+                </button>
+                <div class="card-body" id="logCardBody" hidden>
+                    <div class="log-box" id="logBox"></div>
+                </div>
+            </section>
+        </aside>
+
+        <!-- ============ CENTER: Generation / Edit ============ -->
+        <section class="panel center-panel">
+            <div class="mode-toggle">
+                <button type="button" class="mode-btn active" id="modeGenerate">Generate</button>
+                <button type="button" class="mode-btn" id="modeEdit">Edit image</button>
+            </div>
+
+            <div class="edit-panel card" id="editPanel" hidden>
+                <div class="edit-header">
+                    <h2 class="card-title">Edit image</h2>
+                    <div class="edit-actions">
+                        <button class="btn btn-sm" id="btnLoadImage">Load image</button>
+                        <button class="btn btn-sm" id="btnClearImage" disabled>Clear</button>
+                    </div>
+                </div>
+                <div class="edit-preview" id="editPreview">
+                    <p class="muted">No image loaded. Load one, then describe the edit in the prompt below.</p>
+                </div>
+                <div class="edit-controls">
+                    <label>Strength <span class="hint">(0 = keep original, 1 = fully reimagine)</span></label>
+                    <div class="strength-row">
+                        <input type="range" id="editStrength" min="0" max="1" step="0.01" value="0.75" />
+                        <span class="strength-val" id="editStrengthVal">0.75</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="prompt-card card">
+                <div class="field-row">
+                    <label>Prompt</label>
+                </div>
+                <textarea id="prompt" rows="3" placeholder="Describe the image you want to generate..."></textarea>
+                <div class="field-row">
+                    <label>Negative prompt</label>
+                </div>
+                <textarea id="negativePrompt" rows="2" placeholder="Things to avoid"></textarea>
+                <div class="styles-row">
+                    <label>Style template <span class="hint">(styles.json)</span></label>
+                    <div class="inline-controls">
+                        <select id="styleSelect">
+                            <option value="">None</option>
+                        </select>
+                        <button class="btn btn-sm" id="btnStyleReload" title="Reload styles.json from disk">Reload</button>
+                        <button class="btn btn-sm" id="btnStyleOpen" title="Open styles.json for editing">Edit JSON</button>
+                    </div>
+                </div>
+                <div class="prompt-tools">
+                    <button class="btn btn-sm" id="btnClearPrompt">Clear</button>
+                </div>
+            </div>
+
+            <div class="params-card card">
+                <div class="param-grid">
+                    <div class="param">
+                        <label>Steps</label>
+                        <input type="number" id="steps" value="20" min="1" max="150" />
+                    </div>
+                    <div class="param">
+                        <label>CFG Scale</label>
+                        <input type="number" id="cfgScale" value="7.0" min="0" max="30" step="0.5" />
+                    </div>
+                    <div class="param">
+                        <label>Size</label>
+                        <select id="sizeMode">
+                            <option value="manual">Manual W×H</option>
+                            <option value="ratio">Aspect ratio</option>
+                        </select>
+                    </div>
+                    <div class="param">
+                        <label>Batch count</label>
+                        <input type="number" id="batchCount" value="1" min="1" max="8" />
+                    </div>
+                    <div class="param">
+                        <label>Seed</label>
+                        <div class="inline-controls">
+                            <input type="number" id="seed" value="-1" />
+                            <button class="btn btn-sm" id="btnRandomSeed" title="Random seed (-1)">&#127922;</button>
+                        </div>
+                    </div>
+                    <div class="param">
+                        <label>Sampler</label>
+                        <select id="sampler">
+                            <option value="euler_a">Euler A</option>
+                            <option value="euler">Euler</option>
+                            <option value="heun">Heun</option>
+                            <option value="dpm2">DPM2</option>
+                            <option value="dpm++2m">DPM++ 2M</option>
+                            <option value="dpm++2mv2">DPM++ 2M v2</option>
+                            <option value="dpm++2s_a">DPM++ 2S a</option>
+                            <option value="dpm++2m_sde">DPM++ 2M SDE</option>
+                            <option value="lcm">LCM</option>
+                            <option value="er_sde">ER-SDE</option>
+                        </select>
+                    </div>
+                    <div class="param">
+                        <label>Scheduler</label>
+                        <select id="scheduler">
+                            <option value="discrete">discrete</option>
+                            <option value="normal">normal</option>
+                            <option value="karras">karras</option>
+                            <option value="exponential">exponential</option>
+                            <option value="ays">ays</option>
+                            <option value="gits">gits</option>
+                            <option value="smoothstep">smoothstep</option>
+                            <option value="sgm_uniform">sgm_uniform</option>
+                            <option value="simple">simple</option>
+                            <option value="kl_optimal">kl_optimal</option>
+                            <option value="lcm">lcm</option>
+                        </select>
+                    </div>
+                    <div class="param">
+                        <label>Output format</label>
+                        <select id="outputFormat">
+                            <option value="png">PNG</option>
+                            <option value="jpeg">JPEG</option>
+                            <option value="webp">WebP</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="size-card card">
+                <h2 class="card-title">Image Size</h2>
+                <div id="sizeManual">
+                    <div class="param-grid">
+                        <div class="param">
+                            <label>Width</label>
+                            <input type="number" id="width" value="512" min="64" max="4096" step="8" />
+                        </div>
+                        <div class="param">
+                            <label>Height</label>
+                            <input type="number" id="height" value="512" min="64" max="4096" step="8" />
+                        </div>
+                    </div>
+                </div>
+                <div id="sizeRatio" hidden>
+                    <div class="param-grid">
+                        <div class="param">
+                            <label>Aspect ratio</label>
+                            <select id="ratioPreset">
+                                <option value="1:1">1:1 (square)</option>
+                                <option value="4:3">4:3 (landscape)</option>
+                                <option value="3:4">3:4 (portrait)</option>
+                                <option value="3:2">3:2</option>
+                                <option value="2:3">2:3</option>
+                                <option value="16:9">16:9 (widescreen)</option>
+                                <option value="9:16">9:16 (vertical)</option>
+                                <option value="21:9">21:9 (ultrawide)</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                        </div>
+                        <div class="param">
+                            <label>Megapixels</label>
+                            <input type="number" id="megapixels" value="1.0" min="0.1" max="16" step="0.5" />
+                        </div>
+                    </div>
+                    <div id="ratioCustom" class="ratio-custom" hidden>
+                        <div class="param-grid">
+                            <div class="param">
+                                <label>Ratio W</label>
+                                <input type="number" id="ratioW" value="4" min="1" max="64" />
+                            </div>
+                            <div class="param">
+                                <label>Ratio H</label>
+                                <input type="number" id="ratioH" value="3" min="1" max="64" />
+                            </div>
+                        </div>
+                    </div>
+                    <p class="field-note" id="computedSize">→ 1024 × 1024</p>
+                </div>
+            </div>
+
+            <div class="actions-card card">
+                <button class="btn btn-primary btn-generate" id="btnGenerate">Generate</button>
+                <button class="btn btn-danger" id="btnCancel" disabled>Cancel</button>
+                <span class="gen-status" id="genStatus"></span>
+            </div>
+        </section>
+
+        <!-- ============ RIGHT: Gallery ============ -->
+        <section class="panel right-panel">
+            <div class="card grow">
+                <div class="lora-header">
+                    <h2 class="card-title">Gallery</h2>
+                    <div>
+                        <button class="btn btn-sm" id="btnClearGallery" title="Clear gallery">Clear</button>
+                        <button class="btn btn-sm" id="btnOpenGalleryDir" title="Open gallery folder">Open</button>
+                    </div>
+                </div>
+                <div class="gallery" id="gallery">
+                    <p class="muted">Generated images will appear here.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ============ Settings modal ============ -->
+    <div class="modal-overlay" id="settingsModal" hidden>
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="card-title">Settings</h2>
+                <div class="modal-header-actions">
+                    <button class="btn btn-primary btn-sm" id="btnSaveSettings">Save</button>
+                    <button class="btn btn-sm" id="btnSettingsClose">Close</button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <section class="card">
+                    <h2 class="card-title">Backend Server</h2>
+                    <div class="field-row">
+                        <label>Server binary</label>
+                        <div class="inline-controls">
+                            <input type="text" id="serverBinary" placeholder="Not installed" readonly />
+                            <button class="btn btn-sm" id="btnBrowseServer" title="Point to an existing sd-server">Browse</button>
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <label>Host</label>
+                        <input type="text" id="listenHost" value="127.0.0.1" />
+                    </div>
+                    <div class="field-row">
+                        <label>Port</label>
+                        <input type="number" id="listenPort" value="1234" min="1" max="65535" />
+                    </div>
+                    <div class="field-row">
+                        <label>Extra args</label>
+                        <input type="text" id="extraArgs" placeholder="--threads 8 --diffusion-fa --type f16" />
+                    </div>
+                    <div class="field-row">
+                        <label class="inline">
+                            <input type="checkbox" id="autoStart" />
+                            Auto-start server on launch
+                        </label>
+                    </div>
+                </section>
+                <section class="card">
+                    <h2 class="card-title">Install Backend</h2>
+                    <div class="backend-buttons">
+                        <button class="btn btn-primary" id="btnImportZip">Import release ZIP</button>
+                        <button class="btn" id="btnDownloadLatest">Download Latest Release</button>
+                    </div>
+                    <button class="btn link-folder-btn" id="btnLinkFolder" title="Use an already-extracted backend folder directly (no copying)">Link extracted backend folder...</button>
+                    <div class="download-area" id="downloadArea" hidden>
+                        <p class="download-label" id="downloadLabel">Select an asset</p>
+                        <div id="assetList" class="asset-list"></div>
+                    </div>
+                    <div class="progress-wrap" id="progressWrap" hidden>
+                        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+                        <span class="progress-text" id="progressText"></span>
+                    </div>
+                </section>
+                <section class="card">
+                    <h2 class="card-title">Models</h2>
+                    <div class="field-row">
+                        <label>Model folder</label>
+                        <div class="inline-controls">
+                            <input type="text" id="modelDirInput" placeholder="Choose a folder for your models" readonly />
+                            <button class="btn btn-sm" id="btnModelDirBrowse" title="Choose a model folder">Browse</button>
+                        </div>
+                    </div>
+                    <div class="model-structure">
+                        <p class="muted">The app detects models from these subfolders:</p>
+                        <div class="structure-paths">
+                            <div><span class="struct-dot" data-sub="models"></span> models/</div>
+                            <div><span class="struct-dot" data-sub="loras"></span> loras/</div>
+                            <div><span class="struct-dot" data-sub="vae"></span> vae/</div>
+                            <div><span class="struct-dot" data-sub="textEncoders"></span> text_encoders/</div>
+                        </div>
+                        <div class="structure-actions">
+                            <button class="btn btn-sm" id="btnModelDirCreate" title="Create the subfolders in the selected folder">Create structure</button>
+                            <button class="btn btn-sm" id="btnModelDirDefault" title="Use the default location and create the structure there">Use default location</button>
+                            <button class="btn btn-sm" id="btnModelDirOpen" title="Open the model folder in your file manager">Open</button>
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <label>LoRA folder <span class="hint">(--lora-model-dir)</span></label>
+                        <input type="text" id="loraDirInput" placeholder="loras/ subfolder is auto-detected" readonly />
+                    </div>
+                    <p class="field-note">Pick model / text encoder / VAE / LoRA on the main screen.</p>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

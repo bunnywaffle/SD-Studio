@@ -1,0 +1,41 @@
+{
+  "name": "SD.cpp Studio style templates",
+  "description": "Style templates for generation. Each style has just two fields: prompt and negative_prompt. In prompt, use the {prompt} placeholder where your own prompt should go; if you omit it, the template is simply prepended to your prompt. The negative_prompt is appended to your negative prompt. Edit this file to add, change, or remove styles.",
+  "styles": [
+    {
+      "name": "None",
+      "prompt": "",
+      "negative_prompt": ""
+    },
+    {
+      "name": "Cinematic",
+      "prompt": "cinematic lighting, film still, dramatic composition, {prompt}, shallow depth of field, 35mm",
+      "negative_prompt": "lowres, blurry, jpeg artifacts, watermark, text"
+    },
+    {
+      "name": "Anime",
+      "prompt": "in style of anime, vibrant colors, cel shading, {prompt}, detailed lineart, studio quality",
+      "negative_prompt": "photo, realistic, 3d render, blurry, watermark"
+    },
+    {
+      "name": "Photorealistic",
+      "prompt": "photorealistic, highly detailed, sharp focus, natural lighting, 8k uhd, {prompt}",
+      "negative_prompt": "cartoon, painting, sketch, blurry, lowres, artifacts"
+    },
+    {
+      "name": "Cyberpunk",
+      "prompt": "cyberpunk, neon lights, futuristic city, rain, reflections, night scene, {prompt}",
+      "negative_prompt": "daylight, nature, lowres, blurry, watermark"
+    },
+    {
+      "name": "Watercolor",
+      "prompt": "watercolor painting, soft edges, flowing pigments, paper texture, {prompt}, loose brushstrokes",
+      "negative_prompt": "photorealistic, sharp lines, digital art, blurry, watermark"
+    },
+    {
+      "name": "Minimalist",
+      "prompt": "minimalist, clean composition, negative space, soft gradient background, {prompt}",
+      "negative_prompt": "cluttered, busy, text, watermark, lowres"
+    }
+  ]
+}
