@@ -37,6 +37,13 @@ const el = {
     btnThemeOpen: document.getElementById('btnThemeOpen'),
     btnThemeReload: document.getElementById('btnThemeReload'),
 
+    btnRuntimeCheck: document.getElementById('btnRuntimeCheck'),
+    btnRuntimeFixAll: document.getElementById('btnRuntimeFixAll'),
+    runtimeInfo: document.getElementById('runtimeInfo'),
+    runtimeProgressWrap: document.getElementById('runtimeProgressWrap'),
+    runtimeProgressFill: document.getElementById('runtimeProgressFill'),
+    runtimeProgressText: document.getElementById('runtimeProgressText'),
+
     genProgressCard: document.getElementById('genProgressCard'),
     genProgressFill: document.getElementById('genProgressFill'),
     genProgressText: document.getElementById('genProgressText'),
@@ -1160,6 +1167,10 @@ function bindEvents() {
         await applyTheme(el.themeSelect.value);
         setGenStatus('Theme reloaded.', 'done');
     });
+    el.btnRuntimeCheck.addEventListener('click', async () => {
+        await loadRuntimeInfo(true);
+    });
+    el.btnRuntimeFixAll.addEventListener('click', fixRuntimeDeps);
     el.settingsModal.addEventListener('click', (e) => {
         if (e.target === el.settingsModal) el.settingsModal.hidden = true;
     });
@@ -1246,6 +1257,11 @@ function subscribe() {
         el.progressText.textContent = `${fmtBytes(p.received)} / ${fmtBytes(p.total)} (${pct}%)`;
     });
 
+    api.onRuntimeFixProgress((p) => {
+        const pct = p.total ? Math.round((p.received / p.total) * 100) : 0;
+        setRuntimeProgress(p.message || `${p.phase || ''}...`, pct);
+    });
+
     api.onServerReady(() => {
         setGenStatus('Server ready.', 'done');
         loadCapabilities();
@@ -1293,6 +1309,137 @@ function populateSelect(select, values, fallback) {
     }
 }
 
+// ---------- Runtime & GPU detection ----------
+let runtimeState = null;
+
+function fmtVram(mb) {
+    if (!mb) return 'unknown VRAM';
+    if (mb >= 1024) return `${(mb / 1024).toFixed(0)} GB`;
+    return `${mb} MB`;
+}
+
+function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[c]));
+}
+
+function runtimeChip(className, text) {
+    return `<span class="runtime-chip ${className}">${esc(text)}</span>`;
+}
+
+async function loadRuntimeInfo(manual) {
+    if (manual) setRuntimeProgress('Scanning runtime & GPU...', 0);
+    const res = await api.getRuntimeInfo();
+    if (res.ok) {
+        runtimeState = res.info;
+        renderRuntimeInfo(res.info);
+        if (manual) {
+            setRuntimeProgress(res.info.deps.ok ? 'Runtime looks good.' : 'Issues found. See details below.', 100);
+        }
+    } else {
+        el.runtimeInfo.innerHTML = `<p class="muted">Check failed: ${esc(res.error)}</p>`;
+    }
+    setTimeout(() => {
+        el.runtimeProgressWrap.hidden = true;
+    }, 2500);
+    return res;
+}
+
+function renderRuntimeInfo(info) {
+    const fixable = (info.deps.deps || []).filter((d) => d.fixable && d.missingFiles && d.missingFiles.length);
+    el.btnRuntimeFixAll.disabled = !fixable.length;
+    el.btnRuntimeFixAll.textContent = fixable.length ? `Download missing (${fixable.length})` : 'Download missing';
+
+    const platform = info.platform;
+    const platformLabel = `${platform.platform === 'win32' ? 'Windows' : platform.platform === 'darwin' ? 'macOS' : platform.platform === 'linux' ? 'Linux' : platform.platform} ${platform.arch}${platform.windowsVersion ? ' ' + platform.windowsVersion : ''}`;
+
+    let html = '';
+    html += `<div class="runtime-line"><span class="runtime-label">Platform</span> ${runtimeChip('neutral', platformLabel)}</div>`;
+
+    if (info.gpus && info.gpus.length) {
+        const gpuChips = info.gpus
+            .map((g) => runtimeChip(g.virtual ? 'virtual' : 'gpu', `${g.name} · ${fmtVram(g.vramMB)}`))
+            .join(' ');
+        html += `<div class="runtime-line"><span class="runtime-label">GPU${info.gpus.length > 1 ? 's' : ''}</span> ${gpuChips}</div>`;
+    } else {
+        html += `<div class="runtime-line"><span class="runtime-label">GPU</span> ${runtimeChip('neutral', 'none detected')}</div>`;
+    }
+
+    const variantClass = info.variant.variant === 'none' ? 'error' : 'variant';
+    html += `<div class="runtime-line"><span class="runtime-label">Backend build</span> ${runtimeChip(variantClass, info.variant.label)}</div>`;
+
+    const devices = info.devices || [];
+    if (devices.length) {
+        const chips = devices.map((d) => runtimeChip(/^cpu$/i.test(d.name) ? 'cpu' : 'gpu', d.name)).join(' ');
+        html += `<div class="runtime-line"><span class="runtime-label">Devices (--list-devices)</span> ${chips}</div>`;
+    } else {
+        html += `<div class="runtime-line"><span class="runtime-label">Devices (--list-devices)</span> ${runtimeChip('neutral', 'unavailable')}</div>`;
+    }
+
+    if (info.gpuSilent) {
+        html += `<div class="runtime-warn">Your GPU was detected, but sd-server only sees a CPU device. This usually means a runtime library is missing (below). Download missing files, then press <b>Check</b> again.</div>`;
+    }
+
+    const deps = info.deps && info.deps.deps ? info.deps.deps : [];
+    html += `<div class="runtime-label" style="margin-top:10px">Runtime files</div>`;
+    if (!deps.length) {
+        html += `<div class="runtime-line">${runtimeChip('ok', 'all required runtime files present')}</div>`;
+    } else {
+        for (const d of deps) {
+            const badge = d.fixable ? runtimeChip('error', 'missing') : runtimeChip('warn', 'manual');
+            const files = (d.missingFiles || []).map((f) => `<code>${esc(f)}</code>`).join(', ');
+            html += `<div class="runtime-line"><span class="runtime-label">${esc(d.label)}</span> ${badge}</div>`;
+            if (files) html += `<div class="runtime-files">${files}</div>`;
+            html += `<div class="runtime-desc">${esc(d.description)}</div>`;
+            if (d.fixable) {
+                html += `<button class="btn btn-sm" data-runtime-fix="${esc(d.id)}">Download &amp; fix</button>`;
+            }
+        }
+    }
+
+    el.runtimeInfo.innerHTML = html;
+
+    el.runtimeInfo.querySelectorAll('[data-runtime-fix]').forEach((btn) => {
+        btn.addEventListener('click', () => fixRuntimeDeps(btn.dataset.runtimeFix));
+    });
+}
+
+function setRuntimeProgress(text, pct) {
+    el.runtimeProgressWrap.hidden = false;
+    el.runtimeProgressFill.style.width = `${pct || 0}%`;
+    el.runtimeProgressText.textContent = text;
+}
+
+async function fixRuntimeDeps(onlyGroup) {
+    const groups = (runtimeState && runtimeState.deps && runtimeState.deps.deps) || [];
+    const targets = groups.filter((d) => d.fixable && d.missingFiles && d.missingFiles.length && (!onlyGroup || d.id === onlyGroup));
+    if (!targets.length) return;
+    el.btnRuntimeFixAll.disabled = true;
+    el.btnRuntimeCheck.disabled = true;
+    try {
+        for (const group of targets) {
+            setRuntimeProgress(`Downloading ${group.label}...`, 10);
+            const res = await api.fixRuntimeDep(group.id);
+            if (res.ok) {
+                setRuntimeProgress(`Installed ${res.result.installed.join(', ') || 'files'}.`, 100);
+            } else {
+                setRuntimeProgress(`Failed: ${res.error}`, 100);
+                setGenStatus(`Runtime fix failed: ${res.error}`, 'error');
+                return;
+            }
+        }
+        setGenStatus('Runtime files installed.', 'done');
+    } finally {
+        el.btnRuntimeFixAll.disabled = false;
+        el.btnRuntimeCheck.disabled = false;
+        await loadRuntimeInfo(false);
+        setTimeout(() => {
+            el.runtimeProgressWrap.hidden = true;
+        }, 2000);
+    }
+}
+
 // ---------- Init ----------
 async function init() {
     bindEvents();
@@ -1310,6 +1457,7 @@ async function init() {
     if (backendState.status === 'running') {
         loadCapabilities();
     }
+    loadRuntimeInfo(false);
 }
 
 init();

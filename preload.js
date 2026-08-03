@@ -35,6 +35,10 @@ contextBridge.exposeInMainWorld('sdcpp', {
     stopServer: () => ipcRenderer.invoke('backend:stop'),
     validateDir: (dir) => ipcRenderer.invoke('backend:validateDir', dir),
 
+    // runtime & GPU detection
+    getRuntimeInfo: () => ipcRenderer.invoke('runtime:info'),
+    fixRuntimeDep: (groupId) => ipcRenderer.invoke('runtime:fix', groupId),
+
     // dialogs
     pickFile: (opts) => ipcRenderer.invoke('dialog:pickFile', opts),
     pickImage: () => ipcRenderer.invoke('dialog:pickImage'),
@@ -55,4 +59,5 @@ contextBridge.exposeInMainWorld('sdcpp', {
     onBackendUpdate: (cb) => ipcRenderer.on('backend:update', (e, payload) => cb(payload)),
     onDownloadProgress: (cb) => ipcRenderer.on('backend:downloadProgress', (e, payload) => cb(payload)),
     onServerReady: (cb) => ipcRenderer.on('server:ready', (e, payload) => cb(payload)),
+    onRuntimeFixProgress: (cb) => ipcRenderer.on('runtime:fixProgress', (e, payload) => cb(payload)),
 });

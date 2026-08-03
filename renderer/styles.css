@@ -952,6 +952,85 @@ textarea {
 ::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 5px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
 
+/* ---------- Runtime & GPU ---------- */
+.runtime-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 4px 0;
+}
+
+.runtime-line {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.runtime-label {
+    color: var(--text-dim);
+    font-size: 12px;
+    min-width: 150px;
+}
+
+.runtime-chip {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--text);
+    max-width: 420px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.runtime-chip.gpu { border-color: var(--accent); color: var(--text); }
+.runtime-chip.cpu { color: var(--text-dim); }
+.runtime-chip.variant { border-color: var(--accent); color: var(--accent); }
+.runtime-chip.ok { border-color: var(--ok); color: var(--ok); }
+.runtime-chip.error { border-color: var(--danger); color: var(--danger-text); }
+.runtime-chip.warn { border-color: var(--warn); color: var(--warn); }
+.runtime-chip.virtual { color: var(--text-faint); border-style: dashed; }
+.runtime-chip.neutral { color: var(--text-dim); }
+
+.runtime-warn {
+    margin-top: 6px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--warn);
+    color: var(--warn);
+    background: color-mix(in srgb, var(--warn) 10%, transparent);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.runtime-files {
+    margin-left: 158px;
+    font-size: 12px;
+    color: var(--text-dim);
+    word-break: break-all;
+}
+
+.runtime-desc {
+    margin-left: 158px;
+    font-size: 11px;
+    color: var(--text-faint);
+    line-height: 1.4;
+}
+
+.runtime-info code {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0 4px;
+    font-size: 11px;
+    margin-right: 4px;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 1300px) {
     .app-body {

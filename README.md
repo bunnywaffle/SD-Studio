@@ -65,6 +65,18 @@ All diffusion model files (`.gguf`, `.safetensors`, `.ckpt`, `.pth`, `.pt`, `.bi
 
 While a job runs, a progress card under the Generate button shows the live state: **Queued (queue position)** → **Generating** (animated bar). When the server logs sampling progress (e.g. `3/20` or `45%`), the bar fills to the reported percentage. It hides when the job completes, fails, or is cancelled.
 
+## Runtime & GPU detection
+
+The **Settings → Runtime & GPU** card tells you what your machine can actually use, and fixes missing pieces automatically:
+
+- **Platform** — OS + architecture.
+- **GPU** — every detected adapter, with vendor and VRAM (accurate VRAM comes from `nvidia-smi` where available).
+- **Backend build** — which stable-diffusion.cpp variant is linked: CUDA, Vulkan, ROCm, Metal, or CPU-only (detected from the backend folder's `ggml-*.dll/.so` files).
+- **Devices** — what `sd-server --list-devices` reports, i.e. whether generation will actually use the GPU.
+- **Runtime files** — the app scans the PE imports of every `.exe`/`.dll` next to the server and reports libraries that are missing on the machine.
+
+If a real GPU is present but `sd-server` only sees a CPU device (a missing CUDA/Vulkan runtime), the card shows a warning and a **Download missing** button. For CUDA builds it fetches the matching CUDA runtime (`cudart64_12.dll`, `cublas64_12.dll`, `cublasLt64_12.dll`, ...) from NVIDIA's official redist archive and places them next to the server binary, then re-checks. The detection is cross-platform (Windows / Linux / macOS); automatic downloads currently cover the CUDA runtime on Windows.
+
 ## Config file
 
 Settings are stored as JSON at `app.getPath('userData')/settings.json`:

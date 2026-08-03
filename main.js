@@ -12,6 +12,7 @@ const { loadStyles, getStylesFilePath } = require('./src/styles');
 const models = require('./src/models');
 const releases = require('./src/releases');
 const themes = require('./src/themes');
+const runtime = require('./src/runtime');
 
 // Isolate the E2E test so it never touches the user's real settings/data.
 if (process.env.SDCPP_E2E === '1') {
@@ -550,6 +551,37 @@ ipcMain.handle('backend:validateDir', async (e, dir) => {
     }
     const check = validateBackendDir(dir);
     return check;
+});
+
+// --- IPC: runtime & GPU detection ---------------------------------------
+
+ipcMain.handle('runtime:info', async () => {
+    try {
+        const info = await runtime.getRuntimeInfo(settings.get('backendDir'));
+        return { ok: true, info };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+});
+
+ipcMain.handle('runtime:fix', async (e, groupId) => {
+    try {
+        const backendDir = settings.get('backendDir');
+        let lastPct = -1;
+        let lastPhase = null;
+        const result = await runtime.fixDependency(backendDir, groupId, (progress) => {
+            const pct = progress.total ? Math.round((progress.received / progress.total) * 100) : -1;
+            // Throttle progress IPC so we don't spam hundreds of events per second.
+            if (progress.phase !== lastPhase || pct < 0 || pct !== lastPct) {
+                lastPhase = progress.phase;
+                lastPct = pct;
+                sendToRenderer('runtime:fixProgress', { groupId, ...progress });
+            }
+        });
+        return { ok: true, result };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
 });
 
 // --- IPC: file/dir pickers ----------------------------------------------

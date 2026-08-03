@@ -325,6 +325,23 @@
                     </div>
                 </section>
                 <section class="card">
+                    <h2 class="card-title">Runtime &amp; GPU</h2>
+                    <div class="field-row">
+                        <label>Detect GPU, backend variant &amp; missing runtime files</label>
+                        <div class="inline-controls">
+                            <button class="btn btn-sm" id="btnRuntimeCheck" title="Re-scan GPU, backend variant and dependencies">Check</button>
+                            <button class="btn btn-primary btn-sm" id="btnRuntimeFixAll" disabled title="Download and install all missing runtime files">Download missing</button>
+                        </div>
+                    </div>
+                    <div id="runtimeInfo" class="runtime-info">
+                        <p class="muted">Run a check to detect your GPU, which stable-diffusion.cpp build is linked, and whether any runtime files are missing.</p>
+                    </div>
+                    <div class="progress-wrap" id="runtimeProgressWrap" hidden>
+                        <div class="progress-bar"><div class="progress-fill" id="runtimeProgressFill"></div></div>
+                        <span class="progress-text" id="runtimeProgressText"></span>
+                    </div>
+                </section>
+                <section class="card">
                     <h2 class="card-title">Models</h2>
                     <div class="field-row">
                         <label>Model folder</label>

@@ -36,6 +36,566 @@
       "name": "Minimalist",
       "prompt": "minimalist, clean composition, negative space, soft gradient background, {prompt}",
       "negative_prompt": "cluttered, busy, text, watermark, lowres"
+    },
+    {
+      "name": "Makoto Shinkai Anime",
+      "prompt": "in style of Makoto Shinkai anime, breathtaking sky gradients, volumetric god rays, lens flare, dramatic clouds, hyper-detailed backgrounds, emotional atmosphere, cinematic composition, {prompt}",
+      "negative_prompt": "flat lighting, dull sky, 3d render, lowres, blurry, watermark, text"
+    },
+    {
+      "name": "Painterly Anime",
+      "prompt": "painterly anime style, soft watercolor-like shading, visible brushstrokes, ethereal glow, artistic rendering, dreamy atmosphere, {prompt}",
+      "negative_prompt": "flat cel shading, sharp lineart, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Hollywood",
+      "prompt": "hollywood blockbuster style, epic scale, dramatic cinematography, high production value, movie still, anamorphic lens flare, cinematic color grading, {prompt}",
+      "negative_prompt": "amateur, lowres, blurry, watermark, text, cartoon, sketch"
+    },
+    {
+      "name": "Digital Art",
+      "prompt": "digital art, crisp details, vibrant colors, polished rendering, trending on artstation, professional illustration, {prompt}",
+      "negative_prompt": "photorealistic, sketch, lowres, blurry, watermark, text, 3d render"
+    },
+    {
+      "name": "Webtoon",
+      "prompt": "webtoon style, clean lineart, vibrant flat colors, digital painting, glossy highlights, semi-realistic proportions, readable panels, {prompt}",
+      "negative_prompt": "photorealistic, screentone, rough sketch, lowres, blurry, watermark, 3d render"
+    },
+    {
+      "name": "Manga",
+      "prompt": "manga style, black and white, screentone shading, dynamic panel composition, bold ink lines, speed lines, high contrast, {prompt}",
+      "negative_prompt": "color, photorealistic, lowres, blurry, watermark, 3d render, text"
+    },
+    {
+      "name": "Horror",
+      "prompt": "horror style, dark eerie atmosphere, ominous lighting, unsettling shadows, gritty texture, muted desaturated colors, tension, {prompt}",
+      "negative_prompt": "bright, cheerful, vibrant colors, clean, lowres, blurry, watermark, text"
+    },
+    {
+      "name": "Digital Horror",
+      "prompt": "analog horror, VHS grain, glitch artifacts, corrupted imagery, found footage aesthetic, creepy liminal space, static noise, unsettling, {prompt}",
+      "negative_prompt": "clean, sharp, high quality, vibrant, colorful, watermark, text, lowres"
+    },
+    {
+      "name": "Painterly Art",
+      "prompt": "painterly art, expressive brushstrokes, rich impasto texture, classical oil painting feel, artistic mastery, textured canvas, {prompt}",
+      "negative_prompt": "flat, digital render, photorealistic, lowres, blurry, watermark, text"
+    },
+    {
+      "name": "Studio Ghibli",
+      "prompt": "in style of Studio Ghibli, whimsical atmosphere, soft colors, detailed nature, warm nostalgic feel, hand-drawn animation, {prompt}",
+      "negative_prompt": "photorealistic, 3d render, dark, gritty, lowres, blurry, watermark"
+    },
+    {
+      "name": "Violet Evergarden",
+      "prompt": "in style of Violet Evergarden, elegant details, emotional atmosphere, beautiful lighting, refined lineart, delicate colors, {prompt}",
+      "negative_prompt": "photorealistic, 3d render, rough sketch, lowres, blurry, watermark"
+    },
+    {
+      "name": "Retro Anime",
+      "prompt": "retro 90s anime style, vintage cel shading, nostalgic atmosphere, bold outlines, film grain, muted color palette, {prompt}",
+      "negative_prompt": "modern digital art, 3d render, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Glossy Anime",
+      "prompt": "glossy anime style, smooth shading, vibrant reflections, airbrush highlights, glass-like polish, {prompt}",
+      "negative_prompt": "painterly, rough brushstrokes, 3d render, lowres, blurry, watermark"
+    },
+    {
+      "name": "WLOP",
+      "prompt": "WLOP style, ethereal lighting, semi-realistic, dreamy, soft glow, atmospheric haze, painterly detail, {prompt}",
+      "negative_prompt": "flat cel shading, photorealistic, lowres, blurry, watermark, 3d render"
+    },
+    {
+      "name": "Oil Painting",
+      "prompt": "oil painting, thick brushstrokes, textured canvas, rich colors, classical fine art, chiaroscuro, {prompt}",
+      "negative_prompt": "digital art, flat, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Concept Art",
+      "prompt": "concept art, rough, atmospheric, design sketch, mood board, cinematic composition, environmental storytelling, {prompt}",
+      "negative_prompt": "finished render, photorealistic, lowres, blurry, watermark, text"
+    },
+    {
+      "name": "Pixel Art",
+      "prompt": "pixel art style, 8-bit, retro, blocky, old school game art, limited palette, dithering, {prompt}",
+      "negative_prompt": "high resolution, smooth gradients, 3d render, photorealistic, blurry"
+    },
+    {
+      "name": "Line Art",
+      "prompt": "line art, black and white, sketch, no colors, clean lines, expressive strokes, {prompt}",
+      "negative_prompt": "color, shading, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Lo-Fi",
+      "prompt": "lofi aesthetic, cozy, warm, relaxed atmosphere, soft vignette, muted tones, nostalgic, {prompt}",
+      "negative_prompt": "bright, high contrast, vibrant, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "3D Pixar Style",
+      "prompt": "3d render, pixar style, soft round shapes, glossy materials, subsurface scattering, playful, family friendly, {prompt}",
+      "negative_prompt": "2d, anime, flat, photorealistic, dark, gory, lowres, watermark"
+    },
+    {
+      "name": "Claymation",
+      "prompt": "claymation style, stop motion, handmade clay figures, fingerprint texture, warm plasticine colors, {prompt}",
+      "negative_prompt": "3d render, photorealistic, smooth, lowres, blurry, watermark"
+    },
+    {
+      "name": "Papercraft",
+      "prompt": "papercraft, layered paper cutout, soft shadows, origami aesthetic, handmade diorama, {prompt}",
+      "negative_prompt": "3d render, photorealistic, digital art, lowres, blurry, watermark"
+    },
+    {
+      "name": "Ukiyo-e",
+      "prompt": "ukiyo-e woodblock print, japanese art style, bold outlines, flat colors, wave patterns, traditional, {prompt}",
+      "negative_prompt": "photorealistic, 3d render, modern, lowres, blurry, watermark"
+    },
+    {
+      "name": "Ink Wash",
+      "prompt": "ink wash painting, sumi-e, flowing ink, minimal color, delicate gradients, brush calligraphy feel, {prompt}",
+      "negative_prompt": "detailed lineart, photorealistic, vibrant colors, lowres, blurry, watermark"
+    },
+    {
+      "name": "Graffiti Street Art",
+      "prompt": "graffiti street art, spray paint, bold colors, urban wall, tags, stencil art, gritty city vibe, {prompt}",
+      "negative_prompt": "clean, minimal, corporate, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Neon Noir",
+      "prompt": "neon noir, dramatic shadows, neon glow, rain-soaked streets, film noir mood, saturated teal and pink, {prompt}",
+      "negative_prompt": "daylight, bright, cheerful, lowres, blurry, watermark, text"
+    },
+    {
+      "name": "Vaporwave",
+      "prompt": "vaporwave, retro-futuristic, pastel gradients, glitch art, roman statues, grid floor, 80s nostalgia, {prompt}",
+      "negative_prompt": "modern, photorealistic, lowres, blurry, watermark, text"
+    },
+    {
+      "name": "Synthwave",
+      "prompt": "synthwave, retrowave, neon sun, chrome grid, 80s aesthetic, purple sky, laser beams, {prompt}",
+      "negative_prompt": "natural lighting, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Solarpunk",
+      "prompt": "solarpunk, hopeful future, lush greenery, eco-friendly architecture, warm sunlight, clean energy, {prompt}",
+      "negative_prompt": "dark, dystopian, grunge, lowres, blurry, watermark"
+    },
+    {
+      "name": "Steampunk",
+      "prompt": "steampunk, victorian era, brass gears, copper pipes, goggles, steam powered machinery, sepia tones, {prompt}",
+      "negative_prompt": "modern, futuristic, sleek, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Dieselpunk",
+      "prompt": "dieselpunk, art deco, 1940s retro-futurism, heavy machinery, war-era aesthetics, riveted metal, {prompt}",
+      "negative_prompt": "modern, clean, bright, lowres, blurry, watermark"
+    },
+    {
+      "name": "Post-Apocalyptic",
+      "prompt": "post-apocalyptic, ruined city, overgrown ruins, desolate wasteland, harsh sunlight, gritty survival mood, {prompt}",
+      "negative_prompt": "pristine, clean, cheerful, vibrant, lowres, blurry, watermark"
+    },
+    {
+      "name": "Dark Fantasy",
+      "prompt": "dark fantasy, gothic atmosphere, moody lighting, ancient ruins, occult symbols, dramatic contrast, {prompt}",
+      "negative_prompt": "bright, cheerful, colorful, anime, lowres, blurry, watermark"
+    },
+    {
+      "name": "High Fantasy",
+      "prompt": "high fantasy, epic landscapes, magical glow, heroic composition, lush detail, mythic scale, {prompt}",
+      "negative_prompt": "modern, urban, lowres, blurry, watermark, text"
+    },
+    {
+      "name": "Sci-Fi",
+      "prompt": "science fiction, futuristic technology, sleek design, holographic displays, advanced machinery, {prompt}",
+      "negative_prompt": "medieval, vintage, organic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Film Noir",
+      "prompt": "film noir, black and white, hard shadows, venetian blind light, smoky atmosphere, 1940s detective mood, {prompt}",
+      "negative_prompt": "color, bright, cheerful, modern, lowres, blurry, watermark"
+    },
+    {
+      "name": "Vintage Photo",
+      "prompt": "vintage photograph, faded colors, film grain, light leaks, aged paper texture, nostalgic, {prompt}",
+      "negative_prompt": "digital art, 3d render, sharp, modern, watermark, text"
+    },
+    {
+      "name": "National Geographic",
+      "prompt": "documentary photography, national geographic style, raw natural beauty, golden hour, high detail wildlife, {prompt}",
+      "negative_prompt": "illustration, painting, 3d render, blurry, watermark, text"
+    },
+    {
+      "name": "Low Poly",
+      "prompt": "low poly, geometric faceted shapes, minimal polygons, vibrant colors, game asset style, {prompt}",
+      "negative_prompt": "smooth, high poly, photorealistic, organic, blurry, watermark"
+    },
+    {
+      "name": "Voxel Art",
+      "prompt": "voxel art, blocky 3d cubes, minecraft aesthetic, playful, chunky pixels, {prompt}",
+      "negative_prompt": "smooth, photorealistic, 2d, lowres, blurry, watermark"
+    },
+    {
+      "name": "Chibi",
+      "prompt": "chibi style, super deformed, cute proportions, big head, small body, adorable, simple shading, {prompt}",
+      "negative_prompt": "realistic proportions, photorealistic, dark, scary, lowres, blurry, watermark"
+    },
+    {
+      "name": "Kawaii",
+      "prompt": "kawaii, cute, pastel colors, adorable faces, stickers, soft and sweet, {prompt}",
+      "negative_prompt": "dark, scary, realistic, gory, lowres, blurry, watermark"
+    },
+    {
+      "name": "Gothic",
+      "prompt": "gothic, dark romantic, dramatic shadows, ornate details, cathedral architecture, moody palette, {prompt}",
+      "negative_prompt": "bright, cheerful, modern, minimal, lowres, blurry, watermark"
+    },
+    {
+      "name": "Impressionist",
+      "prompt": "impressionist painting, loose brushstrokes, play of light, dappled color, plein air feel, {prompt}",
+      "negative_prompt": "detailed lineart, photorealistic, flat colors, lowres, blurry, watermark"
+    },
+    {
+      "name": "Van Gogh Style",
+      "prompt": "in style of Van Gogh, swirling brushstrokes, expressive color, post-impressionist, textured paint, {prompt}",
+      "negative_prompt": "smooth, flat, photorealistic, minimal, lowres, blurry, watermark"
+    },
+    {
+      "name": "Surrealist",
+      "prompt": "surrealist, dreamlike, impossible landscapes, melting forms, subconscious imagery, eerie beauty, {prompt}",
+      "negative_prompt": "realistic, ordinary, mundane, lowres, blurry, watermark"
+    },
+    {
+      "name": "Pop Art",
+      "prompt": "pop art, bold colors, halftone dots, comic-style outlines, andy warhol aesthetic, {prompt}",
+      "negative_prompt": "subtle, muted, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Comic Book",
+      "prompt": "comic book style, bold inks, vibrant colors, halftone shading, dynamic action lines, {prompt}",
+      "negative_prompt": "photorealistic, manga, flat colors, lowres, blurry, watermark"
+    },
+    {
+      "name": "Manhwa",
+      "prompt": "manhwa style, full color, refined lineart, glossy rendering, dramatic lighting, semi-realistic, {prompt}",
+      "negative_prompt": "screentone, black and white, rough sketch, lowres, blurry, watermark"
+    },
+    {
+      "name": "Doujinshi",
+      "prompt": "doujinshi style, indie manga, personal art style, expressive, loose ink lines, {prompt}",
+      "negative_prompt": "studio quality, mainstream anime, 3d render, lowres, blurry, watermark"
+    },
+    {
+      "name": "Key Visual",
+      "prompt": "anime key visual, movie poster composition, dramatic lighting, lush backgrounds, balanced composition, {prompt}",
+      "negative_prompt": "plain background, lowres, blurry, watermark, text"
+    },
+    {
+      "name": "Risograph",
+      "prompt": "risograph print, grainy texture, off-registration colors, zine aesthetic, limited ink colors, {prompt}",
+      "negative_prompt": "smooth gradients, photorealistic, 3d render, lowres, blurry, watermark"
+    },
+    {
+      "name": "Screen Print",
+      "prompt": "screen print, flat bold colors, poster art, ink texture, limited palette, {prompt}",
+      "negative_prompt": "gradients, photorealistic, detailed shading, lowres, blurry, watermark"
+    },
+    {
+      "name": "Baroque",
+      "prompt": "baroque painting, dramatic chiaroscuro, rich ornamentation, divine light, classical composition, {prompt}",
+      "negative_prompt": "modern, minimal, flat, lowres, blurry, watermark"
+    },
+    {
+      "name": "Corporate Memphis",
+      "prompt": "corporate memphis style, flat geometric shapes, bold abstract limbs, pastel palette, modern illustration, {prompt}",
+      "negative_prompt": "detailed, realistic, 3d, complex, lowres, blurry, watermark"
+    },
+    {
+      "name": "Flat Design",
+      "prompt": "flat design, solid colors, no gradients, simple shapes, modern vector style, {prompt}",
+      "negative_prompt": "gradients, textures, 3d, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Paper Cutout Diorama",
+      "prompt": "paper cutout diorama, layered depth, handmade craft look, soft shadows, toy-like scene, {prompt}",
+      "negative_prompt": "photorealistic, 3d render, flat, lowres, blurry, watermark"
+    },
+    {
+      "name": "Embroidery",
+      "prompt": "embroidery art, stitched texture, thread details, fabric background, handmade craft, {prompt}",
+      "negative_prompt": "digital painting, photorealistic, smooth, lowres, blurry, watermark"
+    },
+    {
+      "name": "Cross-Stitch",
+      "prompt": "cross-stitch pattern, x-shaped stitches, pixelated fabric texture, handmade, grid pattern, {prompt}",
+      "negative_prompt": "smooth, painted, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Knit Texture",
+      "prompt": "knitted fabric texture, chunky yarn, cozy handmade feel, stitches visible, warm colors, {prompt}",
+      "negative_prompt": "smooth, sleek, digital, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Diorama",
+      "prompt": "miniature diorama, tilt-shift perspective, tiny detailed scene, handmade models, shallow depth of field, {prompt}",
+      "negative_prompt": "flat, 2d, oversized, lowres, blurry, watermark"
+    },
+    {
+      "name": "Tilt-Shift",
+      "prompt": "tilt-shift photography, miniature effect, blurred edges, tiny people, toy-like perspective, {prompt}",
+      "negative_prompt": "normal perspective, sharp edges, lowres, blurry, watermark"
+    },
+    {
+      "name": "Aurora Borealis",
+      "prompt": "aurora borealis, night sky, glowing green and purple lights, starry sky, snowy landscape, {prompt}",
+      "negative_prompt": "daylight, overcast, flat sky, lowres, blurry, watermark"
+    },
+    {
+      "name": "Golden Hour",
+      "prompt": "golden hour, warm sunlight, long shadows, glowing rim light, serene atmosphere, {prompt}",
+      "negative_prompt": "harsh midday light, cold tones, lowres, blurry, watermark"
+    },
+    {
+      "name": "Underwater",
+      "prompt": "underwater scene, caustic light, floating particles, deep blue tones, bubbles, ethereal depth, {prompt}",
+      "negative_prompt": "dry, on land, harsh light, lowres, blurry, watermark"
+    },
+    {
+      "name": "Dreamscape",
+      "prompt": "dreamscape, surreal floating islands, soft pastel skies, impossible geometry, ethereal glow, {prompt}",
+      "negative_prompt": "realistic, grounded, mundane, lowres, blurry, watermark"
+    },
+    {
+      "name": "Liminal Space",
+      "prompt": "liminal space, empty transition areas, eerie stillness, nostalgic unease, muted lighting, {prompt}",
+      "negative_prompt": "crowded, lively, cheerful, vibrant, watermark, text, lowres"
+    },
+    {
+      "name": "Analog Glitch",
+      "prompt": "analog glitch art, RGB split, data corruption, scanlines, distorted pixels, retro tech, {prompt}",
+      "negative_prompt": "clean, sharp, smooth, high quality, watermark, text"
+    },
+    {
+      "name": "VHS Aesthetic",
+      "prompt": "vhs aesthetic, retro camcorder footage, chromatic aberration, tracking lines, dated colors, {prompt}",
+      "negative_prompt": "crisp, modern, 4k, clean, watermark, text"
+    },
+    {
+      "name": "Ornate",
+      "prompt": "ornate, intricate detail, filigree, gold accents, luxurious, elaborate decoration, {prompt}",
+      "negative_prompt": "plain, simple, minimal, lowres, blurry, watermark"
+    },
+    {
+      "name": "Minimal Line Art",
+      "prompt": "minimal line art, one line drawing, continuous stroke, elegant simplicity, white background, {prompt}",
+      "negative_prompt": "busy, detailed, colorful, lowres, blurry, watermark"
+    },
+    {
+      "name": "Storybook",
+      "prompt": "children's storybook illustration, soft textures, warm colors, whimsical, hand-painted charm, {prompt}",
+      "negative_prompt": "photorealistic, dark, gritty, lowres, blurry, watermark"
+    },
+    {
+      "name": "Etching",
+      "prompt": "etching print, fine crosshatch lines, engraved texture, ink on paper, classical detail, {prompt}",
+      "negative_prompt": "color, smooth, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Cubist",
+      "prompt": "cubist style, fragmented forms, geometric planes, multiple perspectives, abstract, {prompt}",
+      "negative_prompt": "realistic, smooth, natural proportions, lowres, blurry, watermark"
+    },
+    {
+      "name": "Art Nouveau",
+      "prompt": "art nouveau, flowing organic curves, floral motifs, decorative borders, elegant, {prompt}",
+      "negative_prompt": "geometric, harsh, modern, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Memphis Design",
+      "prompt": "memphis design, bold patterns, geometric shapes, clashing colors, retro 80s decor, {prompt}",
+      "negative_prompt": "subtle, muted, minimalist, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Zen Garden",
+      "prompt": "zen garden, raked sand, bonsai, stone lanterns, meditative calm, minimal, {prompt}",
+      "negative_prompt": "cluttered, chaotic, vibrant, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Neon Sign",
+      "prompt": "neon sign glow, luminous tubes, dark background, vibrant glow, city night vibe, {prompt}",
+      "negative_prompt": "daylight, matte, dull, lowres, blurry, watermark"
+    },
+    {
+      "name": "Glass Art",
+      "prompt": "glass art, stained glass, translucent colors, light refraction, intricate lead lines, {prompt}",
+      "negative_prompt": "opaque, matte, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Ballpoint Sketch",
+      "prompt": "ballpoint pen sketch, scribble texture, blue ink, casual line work, hand-drawn, {prompt}",
+      "negative_prompt": "clean, digital, color, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Charcoal Drawing",
+      "prompt": "charcoal drawing, smudged graphite, soft darks, dramatic value contrast, sketchy, {prompt}",
+      "negative_prompt": "clean lines, digital, color, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Colored Pencil",
+      "prompt": "colored pencil drawing, textured strokes, soft blending, paper tooth visible, hand-drawn, {prompt}",
+      "negative_prompt": "digital painting, airbrushed, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Chalk Art",
+      "prompt": "chalk pastel art, powdery texture, soft smudges, vibrant pigments, blackboard background, {prompt}",
+      "negative_prompt": "sharp lines, digital, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Inkblot",
+      "prompt": "inkblot art, rorschach style, symmetrical ink spills, dark on paper, abstract, {prompt}",
+      "negative_prompt": "color, clean, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Holographic",
+      "prompt": "holographic effect, iridescent prism colors, light interference, futuristic, rainbow sheen, {prompt}",
+      "negative_prompt": "flat colors, matte, dull, lowres, blurry, watermark"
+    },
+    {
+      "name": "Iridescent",
+      "prompt": "iridescent, opalescent, shifting rainbow colors, pearlescent sheen, light play, {prompt}",
+      "negative_prompt": "flat, matte, single color, lowres, blurry, watermark"
+    },
+    {
+      "name": "Mosaic",
+      "prompt": "mosaic, tessellated tiles, small stone pieces, grout lines, ancient craftsmanship, {prompt}",
+      "negative_prompt": "smooth, seamless, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Renaissance",
+      "prompt": "renaissance painting, classical portraiture, soft sfumato, rich drapery, religious iconography, {prompt}",
+      "negative_prompt": "modern, flat, minimal, lowres, blurry, watermark"
+    },
+    {
+      "name": "Rococo",
+      "prompt": "rococo style, pastel colors, playful curves, gilded details, lighthearted elegance, {prompt}",
+      "negative_prompt": "dark, heavy, minimal, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Wes Anderson",
+      "prompt": "in style of Wes Anderson, symmetric composition, pastel palette, quirky set design, stop-motion feel, {prompt}",
+      "negative_prompt": "asymmetric, dark, gritty, realistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Ghibli Background",
+      "prompt": "ghibli style background, lush painted scenery, detailed foliage, soft light, painterly clouds, {prompt}",
+      "negative_prompt": "photorealistic, 3d render, flat, cluttered, watermark, text"
+    },
+    {
+      "name": "Pencil Concept",
+      "prompt": "pencil concept art, rough graphite, design sketches, annotation notes, blueprint feel, {prompt}",
+      "negative_prompt": "finished, colored, clean, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Clay Model",
+      "prompt": "clay model photography, sculpted clay, matte finish, handcrafted, studio backdrop, {prompt}",
+      "negative_prompt": "smooth plastic, 3d render, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Stop Motion",
+      "prompt": "stop motion animation still, puppets, miniature sets, visible articulation, handmade texture, {prompt}",
+      "negative_prompt": "3d render, photorealistic, fluid animation, lowres, blurry, watermark"
+    },
+    {
+      "name": "Ink Pen Crosshatch",
+      "prompt": "ink pen crosshatch, dense parallel lines, layered shading, engraving style, black and white, {prompt}",
+      "negative_prompt": "smooth gradients, color, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Calligraphy",
+      "prompt": "calligraphy art, expressive brush lettering, ink strokes, elegant, asian brush painting feel, {prompt}",
+      "negative_prompt": "photorealistic, 3d render, cluttered, lowres, blurry, watermark"
+    },
+    {
+      "name": "Blueprint",
+      "prompt": "technical blueprint, white lines on blue background, engineering drawing, measurement marks, {prompt}",
+      "negative_prompt": "colorful, artistic, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "X-Ray",
+      "prompt": "x-ray style, translucent layers, glowing skeletal structure, medical imaging, {prompt}",
+      "negative_prompt": "opaque, solid, colorful, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Silhouette",
+      "prompt": "silhouette style, black shapes against bright background, dramatic backlight, minimal detail, {prompt}",
+      "negative_prompt": "detailed shading, midtones, colorful, lowres, blurry, watermark"
+    },
+    {
+      "name": "Stencil",
+      "prompt": "stencil art, spray paint effect, clean cut shapes, urban street art, monochrome, {prompt}",
+      "negative_prompt": "detailed, painterly, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Negative Space",
+      "prompt": "negative space art, clever cutout design, single color, optical illusion, {prompt}",
+      "negative_prompt": "busy, multi-colored, photorealistic, lowres, blurry, watermark"
+    },
+    {
+      "name": "Lowkey Photography",
+      "prompt": "lowkey photography, dramatic dark exposure, deep blacks, single light source, moody, {prompt}",
+      "negative_prompt": "bright, high key, flat lighting, lowres, blurry, watermark"
+    },
+    {
+      "name": "Highkey Photography",
+      "prompt": "highkey photography, bright white background, soft exposure, airy, clean, ethereal, {prompt}",
+      "negative_prompt": "dark, moody, high contrast, lowres, blurry, watermark"
+    },
+    {
+      "name": "Drone Aerial",
+      "prompt": "drone aerial photography, top-down view, sweeping landscape, crisp daylight, {prompt}",
+      "negative_prompt": "ground level, portrait, lowres, blurry, watermark, text"
+    },
+    {
+      "name": "Macro",
+      "prompt": "macro photography, extreme close-up, fine detail, shallow depth of field, bokeh, {prompt}",
+      "negative_prompt": "wide shot, lowres, blurry, watermark, text"
+    },
+    {
+      "name": "Fisheye",
+      "prompt": "fisheye lens, extreme wide angle, curved distortion, immersive perspective, {prompt}",
+      "negative_prompt": "straight lines, standard perspective, lowres, blurry, watermark"
+    },
+    {
+      "name": "Anamorphic",
+      "prompt": "anamorphic lens, widescreen cinematic, horizontal lens flare, oval bokeh, {prompt}",
+      "negative_prompt": "standard aspect, sharp bokeh, lowres, blurry, watermark"
+    },
+    {
+      "name": "Double Exposure",
+      "prompt": "double exposure, two images blended, silhouette filled with scenery, dreamy, {prompt}",
+      "negative_prompt": "single exposure, flat, lowres, blurry, watermark"
+    },
+    {
+      "name": "Light Painting",
+      "prompt": "light painting, long exposure, glowing trails, dark background, neon streaks, {prompt}",
+      "negative_prompt": "daylight, static light, lowres, blurry, watermark"
+    },
+    {
+      "name": "Bokeh",
+      "prompt": "bokeh background, glowing orbs, dreamy defocus, shallow depth of field, {prompt}",
+      "negative_prompt": "sharp background, flat, lowres, blurry, watermark"
+    },
+    {
+      "name": "Panorama",
+      "prompt": "panoramic view, ultra wide scene, sweeping vista, immersive landscape, {prompt}",
+      "negative_prompt": "narrow crop, portrait orientation, lowres, blurry, watermark"
+    },
+    {
+      "name": "Miniature Model",
+      "prompt": "miniature model photography, tiny figures, tilt-shift blur, handcrafted diorama, {prompt}",
+      "negative_prompt": "real scale, flat, lowres, blurry, watermark"
     }
   ]
 }
