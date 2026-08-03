@@ -47,6 +47,10 @@
                         <select id="selTextEncoder"></select>
                     </div>
                     <div class="field-row">
+                        <label>Vision encoder <span class="hint">(--llm_vision; needed for VLM edit models)</span></label>
+                        <select id="selVisionEncoder"></select>
+                    </div>
+                    <div class="field-row">
                         <label>VAE <span class="hint">(--vae)</span></label>
                         <select id="selVae"></select>
                     </div>
@@ -88,7 +92,7 @@
                     <p class="muted">No image loaded. Load one, then describe the edit in the prompt below.</p>
                 </div>
                 <div class="edit-controls">
-                    <label>Strength <span class="hint">(0 = keep original, 1 = fully reimagine)</span></label>
+                    <label>Strength <span class="hint">(edit strength; ignored by reference-image models like FLUX.2)</span></label>
                     <div class="strength-row">
                         <input type="range" id="editStrength" min="0" max="1" step="0.01" value="0.75" />
                         <span class="strength-val" id="editStrengthVal">0.75</span>
@@ -300,6 +304,10 @@
                     <div class="field-row">
                         <label>Extra args</label>
                         <input type="text" id="extraArgs" placeholder="--threads 8 --diffusion-fa --type f16" />
+                    </div>
+                    <div class="field-row">
+                        <label>Ref-image args</label>
+                        <input type="text" id="refImageArgs" placeholder="preset=qwen_layered (optional; auto-detected from model)" />
                     </div>
                     <div class="field-row">
                         <label class="inline">

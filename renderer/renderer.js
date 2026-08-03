@@ -15,6 +15,7 @@ const el = {
     listenHost: document.getElementById('listenHost'),
     listenPort: document.getElementById('listenPort'),
     extraArgs: document.getElementById('extraArgs'),
+    refImageArgs: document.getElementById('refImageArgs'),
     autoStart: document.getElementById('autoStart'),
     btnImportZip: document.getElementById('btnImportZip'),
     btnDownloadLatest: document.getElementById('btnDownloadLatest'),
@@ -55,6 +56,7 @@ const el = {
     btnModelDirOpen: document.getElementById('btnModelDirOpen'),
     selModel: document.getElementById('selModel'),
     selTextEncoder: document.getElementById('selTextEncoder'),
+    selVisionEncoder: document.getElementById('selVisionEncoder'),
     selVae: document.getElementById('selVae'),
     loraDirInput: document.getElementById('loraDirInput'),
 
@@ -607,7 +609,7 @@ function getActiveLoraSlots() {
     return loraSlots.filter((s) => s.path);
 }
 
-// ---------- Image editing (img2img) ----------
+// ---------- Image editing (reference-image / DiT edit models) ----------
 function setEditMode(on) {
     editMode = !!on;
     el.modeGenerate.classList.toggle('active', !editMode);
@@ -689,7 +691,9 @@ function buildNativePayload() {
         output_compression: 100,
     };
     if (editMode && initImage) {
-        payload.init_image = initImage.dataUrl;
+        payload.ref_images = [initImage.dataUrl];
+        payload.auto_resize_ref_image = true;
+        payload.increase_ref_index = false;
         payload.strength = parseFloat(el.editStrength.value) || 0.75;
         payload.width = clampSize(snapTo8(initImage.width));
         payload.height = clampSize(snapTo8(initImage.height));
@@ -872,6 +876,7 @@ function renderModels() {
     fillModelSelect(el.selModel, modelsState.models, currentModel, 'None');
     fillModelSelect(el.selVae, modelsState.vae, settings.vaePath || '', 'None');
     fillModelSelect(el.selTextEncoder, modelsState.textEncoders, settings.textEncoderPath || '', 'None');
+    fillModelSelect(el.selVisionEncoder, modelsState.visionEncoders, settings.visionEncoderPath || '', 'None');
 
     el.loraDirInput.value = settings.loraDir || (modelsState.subDirs && modelsState.subDirs.loras) || '';
     const loraCount = modelsState.loras ? modelsState.loras.length : 0;
@@ -912,6 +917,12 @@ async function onVaeSelect() {
 
 async function onTextEncoderSelect() {
     await api.setSettings({ textEncoderPath: el.selTextEncoder.value || '' });
+    settings = await api.getSettings();
+    renderModels();
+}
+
+async function onVisionEncoderSelect() {
+    await api.setSettings({ visionEncoderPath: el.selVisionEncoder.value || '' });
     settings = await api.getSettings();
     renderModels();
 }
@@ -1059,6 +1070,7 @@ function collectSettingsFromUi() {
         listenHost: el.listenHost.value,
         listenPort: parseInt(el.listenPort.value, 10) || 1234,
         extraArgs: el.extraArgs.value,
+        refImageArgs: el.refImageArgs.value,
         autoStartServer: el.autoStart.checked,
         sizeMode: el.sizeMode.value,
         ratioPreset: el.ratioPreset.value,
@@ -1088,6 +1100,7 @@ function applySettingsToUi() {
     el.listenHost.value = settings.listenHost || '127.0.0.1';
     el.listenPort.value = settings.listenPort || 1234;
     el.extraArgs.value = settings.extraArgs || '';
+    el.refImageArgs.value = settings.refImageArgs || '';
     el.autoStart.checked = !!settings.autoStartServer;
     el.sizeMode.value = settings.sizeMode || 'manual';
     el.ratioPreset.value = settings.ratioPreset || '1:1';
@@ -1185,6 +1198,7 @@ function bindEvents() {
     el.selModel.addEventListener('change', onModelSelect);
     el.selVae.addEventListener('change', onVaeSelect);
     el.selTextEncoder.addEventListener('change', onTextEncoderSelect);
+    el.selVisionEncoder.addEventListener('change', onVisionEncoderSelect);
 
     el.btnBrowseServer.addEventListener('click', async () => {
         const p = await api.pickFile({ title: 'Select sd-server executable', filters: [{ name: 'Server executable', extensions: ['exe', '*'] }] });

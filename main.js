@@ -190,7 +190,8 @@ function runE2ECheck() {
                 // drop a dummy model + lora file
                 await window.sdcpp.writeFile(created.subDirs.models + '/test-model.safetensors', [1,2,3]);
                 await window.sdcpp.writeFile(created.subDirs.loras + '/test-lora.safetensors', [1,2,3]);
-                // refresh page models state so the dropdown is populated
+                await window.sdcpp.writeFile(created.subDirs.textEncoders + '/mmproj-test.gguf', [1,2,3]);
+                // refresh page models state so the dropdowns are populated
                 await window.refreshModels();
                 const scan = await window.sdcpp.getModels();
                 const detectOk = scan.ok && scan.models.length === 1 && scan.loras.length === 1;
@@ -202,6 +203,15 @@ function runE2ECheck() {
                 await new Promise(r => setTimeout(r, 200));
                 const selState = await window.sdcpp.getSettings();
                 const selectOk = selState.diffusionModelPath === scan.models[0].path;
+
+                // Vision encoder: detected in text_encoders/ and selectable
+                const visionSelect = document.getElementById('selVisionEncoder');
+                const visionOpts = visionSelect ? visionSelect.options.length : 0;
+                const visionOk = scan.ok
+                    && Array.isArray(scan.visionEncoders)
+                    && scan.visionEncoders.some((f) => /mmproj/i.test(f.name))
+                    && visionSelect
+                    && Array.from(visionSelect.options).some((o) => /mmproj/i.test(o.value));
 
                 // --- generation ---
                 document.getElementById('prompt').value = 'a red cube on a table';
@@ -254,7 +264,7 @@ function runE2ECheck() {
                 if (loraSlider) loraSlider.value = '1.2';
                 const loraStrengthOk = !!loraSlider && loraSlider.max === '2' && loraSlider.value === '1.2';
 
-                // Edit mode (img2img): switch mode, set an init image + strength, build payload
+                // Edit mode: switch mode, set a reference image + strength, build payload
                 window.setEditMode(true);
                 window.setInitImageData('test-edit.png', 'data:image/png;base64,AAAA', 640, 384);
                 const editPanelVisible = document.getElementById('editPanel').hidden === false;
@@ -264,9 +274,11 @@ function runE2ECheck() {
                 const editPayload = window.buildNativePayload();
                 const editOk = editPanelVisible
                     && editPayload
-                    && editPayload.init_image === 'data:image/png;base64,AAAA'
+                    && Array.isArray(editPayload.ref_images)
+                    && editPayload.ref_images[0] === 'data:image/png;base64,AAAA'
                     && editPayload.strength === 0.6
-                    && editPayload.width === 640 && editPayload.height === 384;
+                    && editPayload.width === 640 && editPayload.height === 384
+                    && !('init_image' in editPayload);
                 window.setEditMode(false);
                 const editClearedOk = document.getElementById('editPanel').hidden === true;
 
@@ -301,6 +313,7 @@ function runE2ECheck() {
                     detectOk,
                     modelOpts,
                     selectOk,
+                    visionOk,
                     linkOk,
                 };
             })()`);
@@ -308,6 +321,7 @@ function runE2ECheck() {
             const checks = result.jobStatus === 'completed' && result.hasImages
                 && result.ratioSizeOk && result.styleApplied
                 && result.structureOk && result.detectOk && result.selectOk
+                && result.visionOk
                 && result.linkOk
                 && result.loraSlotOk && result.loraStrengthOk
                 && result.editOk && result.editClearedOk

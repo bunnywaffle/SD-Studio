@@ -14,6 +14,8 @@ class SettingsStore {
             diffusionModelPath: '',
             vaePath: '',
             textEncoderPath: '',
+            visionEncoderPath: '',
+            refImageArgs: '',
             loraDir: '',
             loraSlots: [],
             listenHost: '127.0.0.1',

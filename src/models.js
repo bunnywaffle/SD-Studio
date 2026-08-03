@@ -29,6 +29,8 @@ function createStructure(dir) {
     return created;
 }
 
+const VISION_ENCODER_RE = /mmproj|vision|vlm|vl-|vl\./i;
+
 function listFiles(dir, exts) {
     if (!dir || !fs.existsSync(dir)) return [];
     try {
@@ -60,10 +62,14 @@ function scan(dir) {
     }
     const exists = !!dir && fs.existsSync(dir);
     const structureComplete = exists && Object.values(subDirs).every((s) => fs.existsSync(s));
-    const result = { models: [], loras: [], vae: [], textEncoders: [] };
+    const result = { models: [], loras: [], vae: [], textEncoders: [], visionEncoders: [] };
     for (const key of Object.keys(SUBDIRS)) {
         result[key] = listFiles(subDirs[key], EXTENSIONS[key]);
     }
+    // Vision encoders (mmproj / VLM CLIP files) live in text_encoders/ too;
+    // fall back to listing all text encoders when none match so the picker is still usable.
+    const visionFiles = result.textEncoders.filter((f) => VISION_ENCODER_RE.test(f.name));
+    result.visionEncoders = visionFiles.length > 0 ? visionFiles : result.textEncoders;
     return {
         dir: dir || '',
         exists,

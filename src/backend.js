@@ -255,6 +255,8 @@ class BackendManager {
         const diffusionModel = this.settings.get('diffusionModelPath');
         const vaePath = this.settings.get('vaePath');
         const tePath = this.settings.get('textEncoderPath');
+        const visionEncoder = this.settings.get('visionEncoderPath');
+        const refImageArgs = (this.settings.get('refImageArgs') || '').trim();
         const loraDir = this.settings.get('loraDir');
         const host = this.settings.get('listenHost') || '127.0.0.1';
         const port = this.settings.get('listenPort') || 1234;
@@ -270,6 +272,12 @@ class BackendManager {
         }
         if (tePath) {
             args.push('--llm', tePath);
+        }
+        if (visionEncoder) {
+            args.push('--llm_vision', visionEncoder);
+        }
+        if (refImageArgs) {
+            args.push('--ref-image-args', refImageArgs);
         }
         if (loraDir) {
             args.push('--lora-model-dir', loraDir);
