@@ -59,7 +59,11 @@ Configure host/port/extra args in the same dialog.
 
 ## Model type note
 
-`.gguf`/`.bin` diffusion models are passed via `-m` (unified model); `.safetensors`/`.ckpt`/`.pth`/`.pt` are passed via `--diffusion-model`. The app picks the right flag automatically when you select a file from the `models/` folder. `--vae`, `--llm`, and `--lora-model-dir` come from the `vae/`, `text_encoders/`, and `loras/` subfolders.
+All diffusion model files (`.gguf`, `.safetensors`, `.ckpt`, `.pth`, `.pt`, `.bin`) are launched with `--diffusion-model`. This is the flag stable-diffusion.cpp requires for FLUX-family models — it prepends the `model.diffusion_model.` tensor prefix when loading, which is how the model type is detected. `--vae`, `--llm`, and `--lora-model-dir` come from the `vae/`, `text_encoders/`, and `loras/` subfolders.
+
+## Progress
+
+While a job runs, a progress card under the Generate button shows the live state: **Queued (queue position)** → **Generating** (animated bar). When the server logs sampling progress (e.g. `3/20` or `45%`), the bar fills to the reported percentage. It hides when the job completes, fails, or is cancelled.
 
 ## Config file
 
@@ -85,9 +89,39 @@ Settings are stored as JSON at `app.getPath('userData')/settings.json`:
   "megapixels": 1.0,
   "width": 512,
   "height": 512,
-  "selectedStyle": ""
+  "selectedStyle": "",
+  "steps": 20,
+  "cfgScale": 7,
+  "seed": -1,
+  "batchCount": 1,
+  "sampler": "euler_a",
+  "scheduler": "discrete",
+  "outputFormat": "png",
+  "theme": "neutral"
 }
 ```
+
+Generation parameters (steps, CFG, seed, batch, sampler, scheduler, output format) auto-save whenever you change them, so the app restores your last-used values on the next launch. The **Save** button in the Settings dialog persists every field to this JSON explicitly.
+
+## Themes
+
+The UI is a CSS-variable theme system. On first launch the app copies the bundled theme files into the user-data `themes` folder, where they are plain CSS and fully user-editable.
+
+- **Settings → Theme** lists available themes (`neutral`, `dark`, `light` by default).
+- Click **Open themes folder** to edit/add CSS files; click **Reload** to apply changes without restarting.
+- Any `*.css` file you drop into the themes folder appears in the dropdown. Themes just redefine the same CSS variables, e.g.:
+
+```css
+:root {
+    --bg: #1a1a1a;
+    --bg-panel: #222222;
+    --bg-card: #2a2a2a;
+    --text: #e8e8e8;
+    --accent: #8a8a8a;
+}
+```
+
+The bundled `themes/neutral.css` contains the complete variable list — copy it as a starting point for your own theme.
 
 ## Style templates (`styles.json`)
 
@@ -137,9 +171,11 @@ src/styles.js           Style-template loader (styles.json, user-data copy)
 src/releases.js         GitHub release/asset listing + classification
 src/backend.js          BackendManager: download/extract/validate/spawn sd-server
 src/api.js              HTTP client for /sdcpp/v1 and /sdapi/v1
+src/themes.js           Theme loader: seed/read user-editable theme css from user-data
 styles.json             Bundled style templates (copied to user-data on first run)
+themes/                 Bundled user-editable themes (neutral, dark, light)
 renderer/index.html     UI markup
-renderer/styles.css     Styling
+renderer/styles.css     Styling (neutral default; all colors as CSS variables)
 renderer/renderer.js    UI logic, generation flow, size/ratio, styles, models, gallery
 ```
 

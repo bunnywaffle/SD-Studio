@@ -33,6 +33,14 @@ const el = {
     btnSaveSettings: document.getElementById('btnSaveSettings'),
     backendAlert: document.getElementById('backendAlert'),
 
+    themeSelect: document.getElementById('themeSelect'),
+    btnThemeOpen: document.getElementById('btnThemeOpen'),
+    btnThemeReload: document.getElementById('btnThemeReload'),
+
+    genProgressCard: document.getElementById('genProgressCard'),
+    genProgressFill: document.getElementById('genProgressFill'),
+    genProgressText: document.getElementById('genProgressText'),
+
     modelDirInput: document.getElementById('modelDirInput'),
     btnModelDirBrowse: document.getElementById('btnModelDirBrowse'),
     btnModelDirCreate: document.getElementById('btnModelDirCreate'),
@@ -100,6 +108,7 @@ let pollTimer = null;
 let galleryItems = [];
 let galleryDir = null;
 let styles = [];
+let themesAvailable = [];
 let modelsState = null;
 let editMode = false;
 let initImage = null; // { name, dataUrl, width, height }
@@ -278,7 +287,6 @@ async function loadStyles() {
     styles = res.styles;
     renderStyleSelect();
 }
-
 function renderStyleSelect() {
     const current = el.styleSelect.value;
     el.styleSelect.innerHTML = '';
@@ -297,6 +305,68 @@ function renderStyleSelect() {
 function getSelectedStyle() {
     const id = el.styleSelect.value;
     return styles.find((s) => String(s.id) === id) || null;
+}
+
+// ---------- Themes (user-editable CSS) ----------
+async function loadThemes() {
+    const res = await api.listThemes();
+    if (!res.ok || !Array.isArray(res.themes)) return;
+    themesAvailable = res.themes;
+    const current = settings.theme || 'neutral';
+    el.themeSelect.innerHTML = '';
+    for (const t of themesAvailable) {
+        const opt = new Option(t.name, t.name);
+        el.themeSelect.appendChild(opt);
+    }
+    if (themesAvailable.some((t) => t.name === current)) {
+        el.themeSelect.value = current;
+    }
+}
+
+async function applyTheme(name) {
+    const res = await api.getTheme(name);
+    if (!res.ok) return;
+    let style = document.getElementById('themeStyle');
+    if (!style) {
+        style = document.createElement('style');
+        style.id = 'themeStyle';
+        document.head.appendChild(style);
+    }
+    style.textContent = res.css || '';
+}
+
+// ---------- Generation progress ----------
+function showProgress(indeterminate, text, pct) {
+    el.genProgressCard.hidden = false;
+    el.genProgressFill.classList.toggle('indeterminate', !!indeterminate);
+    if (pct != null) {
+        el.genProgressFill.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+        el.genProgressFill.style.marginLeft = '0';
+    } else {
+        el.genProgressFill.style.width = '';
+        el.genProgressFill.style.marginLeft = '';
+    }
+    el.genProgressText.textContent = text || '';
+}
+
+function hideProgress() {
+    el.genProgressCard.hidden = true;
+    el.genProgressFill.style.width = '';
+    el.genProgressFill.style.marginLeft = '';
+    el.genProgressText.textContent = '';
+}
+
+// Parse "x%" or "x/y" progress from server log lines to update the bar.
+function progressFromLog(message) {
+    const m = String(message || '').match(/(\d{1,3}(?:\.\d+)?)%/);
+    if (m) return Math.min(100, parseFloat(m[1]));
+    const ratio = String(message || '').match(/(\d{1,4})\s*\/\s*(\d{1,4})/);
+    if (ratio) {
+        const num = parseInt(ratio[1], 10);
+        const den = parseInt(ratio[2], 10);
+        if (den > 0) return Math.min(100, (num / den) * 100);
+    }
+    return null;
 }
 
 // Combine the user's prompt with the style template at generation time.
@@ -663,14 +733,17 @@ async function generate() {
         const res = await api.submitJob(payload);
         if (!res.ok) {
             setGenStatus(`Submission failed: ${res.error}`, 'error');
+            hideProgress();
             setBusy(false);
             return;
         }
         activeJob = res.job;
+        showProgress(true, `Job ${res.job.id} queued...`);
         setGenStatus(`Job ${res.job.id} queued...`, 'busy');
         pollTimer = setInterval(pollJob, 1200);
     } catch (err) {
         setGenStatus(`Error: ${err.message}`, 'error');
+        hideProgress();
         setBusy(false);
     }
 }
@@ -688,18 +761,26 @@ async function pollJob() {
         const job = res.job;
         if (job.status === 'completed') {
             stopPolling();
+            showProgress(false, 'Done.', 100);
             handleCompletion(job);
+            setTimeout(hideProgress, 1500);
         } else if (job.status === 'failed') {
             stopPolling();
+            hideProgress();
             const msg = job.error && (job.error.message || job.error.code) ? (job.error.message || job.error.code) : 'Generation failed';
             setGenStatus(msg, 'error');
             setBusy(false);
         } else if (job.status === 'cancelled') {
             stopPolling();
+            hideProgress();
             setGenStatus('Cancelled.', '');
             setBusy(false);
+        } else if (job.status === 'generating') {
+            showProgress(true, 'Generating...');
+            setGenStatus('Generating...', 'busy');
         } else {
             const qp = job.queue_position != null ? ` · queue ${job.queue_position}` : '';
+            showProgress(true, `Queued${qp}`);
             setGenStatus(`${job.status}${qp}`, 'busy');
         }
     } catch (err) {
@@ -1066,6 +1147,19 @@ function bindEvents() {
         await saveSettingsFromUi();
         setGenStatus('Settings saved.', 'done');
     });
+    el.themeSelect.addEventListener('change', async () => {
+        await api.setSettings({ theme: el.themeSelect.value });
+        settings = await api.getSettings();
+        await applyTheme(el.themeSelect.value);
+        setGenStatus(`Theme: ${el.themeSelect.value}`, 'done');
+    });
+    el.btnThemeOpen.addEventListener('click', async () => {
+        await api.openThemesDir();
+    });
+    el.btnThemeReload.addEventListener('click', async () => {
+        await applyTheme(el.themeSelect.value);
+        setGenStatus('Theme reloaded.', 'done');
+    });
     el.settingsModal.addEventListener('click', (e) => {
         if (e.target === el.settingsModal) el.settingsModal.hidden = true;
     });
@@ -1131,6 +1225,12 @@ function subscribe() {
     api.onBackendUpdate((patch) => {
         if (patch.type === 'log') {
             logLine(patch.entry);
+            if (activeJob && !el.genProgressCard.hidden) {
+                const pct = progressFromLog(patch.entry.message);
+                if (pct != null) {
+                    showProgress(false, el.genProgressText.textContent || 'Generating...', pct);
+                }
+            }
             return;
         }
         if (patch.type === 'state') {
@@ -1200,6 +1300,8 @@ async function init() {
     settings = await api.getSettings();
     applySettingsToUi();
     await loadStyles();
+    await loadThemes();
+    await applyTheme(settings.theme || 'neutral');
     await refreshModels();
     const state = await api.getBackendState();
     backendState = state;

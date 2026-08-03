@@ -1,0 +1,36 @@
+/* ============================================================
+   SD.cpp Studio Theme: Dark (neutral charcoal)
+   ------------------------------------------------------------
+   User-editable. Change values and reload the theme.
+   ============================================================ */
+:root {
+    --bg: #111111;
+    --bg-panel: #181818;
+    --bg-card: #1f1f1f;
+    --bg-input: #151515;
+    --border: #2e2e2e;
+    --text: #ececec;
+    --text-dim: #8d8d8d;
+    --text-faint: #626262;
+    --accent: #9a9a9a;
+    --accent-hover: #b0b0b0;
+    --accent-2: #5f5f5f;
+    --on-accent: #111111;
+    --danger: #e5534b;
+    --danger-hover: #f0605a;
+    --danger-bg: rgba(229, 83, 75, 0.12);
+    --danger-text: #ffb4bd;
+    --ok: #3fb950;
+    --warn: #d29922;
+    --offline: #4a4a4a;
+    --btn-bg: #2a2a2a;
+    --btn-hover-bg: #343434;
+    --btn-hover-border: #444444;
+    --overlay: rgba(0, 0, 0, 0.65);
+    --overlay-soft: rgba(0, 0, 0, 0.6);
+    --overlay-strong: rgba(0, 0, 0, 0.85);
+    --scrollbar: #303030;
+    --scrollbar-hover: #3d3d3d;
+    --bg-log: #0d0d0d;
+    --text-log: #c0c0c0;
+}

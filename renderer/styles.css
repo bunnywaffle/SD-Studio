@@ -1,17 +1,33 @@
 :root {
-    --bg: #0f1115;
-    --bg-panel: #161922;
-    --bg-card: #1c202b;
-    --bg-input: #12151d;
-    --border: #2a2f3d;
-    --text: #e6e8ee;
-    --text-dim: #8b93a7;
-    --accent: #6c8cff;
-    --accent-hover: #7d9aff;
+    --bg: #1a1a1a;
+    --bg-panel: #222222;
+    --bg-card: #2a2a2a;
+    --bg-input: #1e1e1e;
+    --border: #3a3a3a;
+    --text: #e8e8e8;
+    --text-dim: #9a9a9a;
+    --text-faint: #6b6b6b;
+    --accent: #8a8a8a;
+    --accent-hover: #a0a0a0;
+    --accent-2: #6b6b6b;
+    --on-accent: #fff;
     --danger: #e5534b;
     --danger-hover: #f0605a;
+    --danger-bg: rgba(229, 83, 75, 0.12);
+    --danger-text: #ffb4bd;
     --ok: #3fb950;
     --warn: #d29922;
+    --offline: #555555;
+    --btn-bg: #333333;
+    --btn-hover-bg: #3d3d3d;
+    --btn-hover-border: #4a4a4a;
+    --overlay: rgba(0, 0, 0, 0.6);
+    --overlay-soft: rgba(0, 0, 0, 0.55);
+    --overlay-strong: rgba(0, 0, 0, 0.8);
+    --scrollbar: #3a3a3a;
+    --scrollbar-hover: #4a4a4a;
+    --bg-log: #161616;
+    --text-log: #c6c6c6;
     --radius: 8px;
 }
 
@@ -52,13 +68,13 @@ html, body {
     width: 36px;
     height: 36px;
     border-radius: 9px;
-    background: linear-gradient(135deg, var(--accent), #9b5cff);
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 800;
     font-size: 16px;
-    color: #fff;
+    color: var(--on-accent);
 }
 
 .brand-text h1 {
@@ -84,13 +100,13 @@ html, body {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: #555;
+    background: var(--offline);
 }
 
 .status-dot.online { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
 .status-dot.starting { background: var(--warn); animation: pulse 1s infinite; }
 .status-dot.error { background: var(--danger); }
-.status-dot.offline { background: #555; }
+.status-dot.offline { background: var(--offline); }
 
 @keyframes pulse {
     0%, 100% { opacity: 1; }
@@ -116,9 +132,9 @@ html, body {
     width: min(1200px, calc(100% - 24px));
     padding: 10px 14px;
     border-radius: var(--radius);
-    background: rgba(244, 63, 94, 0.12);
+    background: var(--danger-bg);
     border: 1px solid var(--danger);
-    color: #ffb4bd;
+    color: var(--danger-text);
     font-size: 13px;
     line-height: 1.45;
 }
@@ -132,7 +148,7 @@ html, body {
     padding: 7px 14px;
     border-radius: var(--radius);
     border: 1px solid var(--border);
-    background: #242936;
+    background: var(--btn-bg);
     color: var(--text);
     font-size: 13px;
     cursor: pointer;
@@ -140,13 +156,13 @@ html, body {
     white-space: nowrap;
 }
 
-.btn:hover { background: #2c323f; border-color: #3a4152; }
+.btn:hover { background: var(--btn-hover-bg); border-color: var(--btn-hover-border); }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .btn-primary {
     background: var(--accent);
     border-color: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     font-weight: 600;
 }
 
@@ -158,7 +174,7 @@ html, body {
     color: var(--danger);
 }
 
-.btn-danger:hover:not(:disabled) { background: var(--danger); color: #fff; }
+.btn-danger:hover:not(:disabled) { background: var(--danger); color: var(--on-accent); }
 
 .btn-sm {
     padding: 4px 9px;
@@ -279,7 +295,7 @@ html, body {
     font-size: 13px;
 }
 
-.lora-slot-remove:hover { background: var(--danger); color: #fff; }
+.lora-slot-remove:hover { background: var(--danger); color: var(--on-accent); }
 
 .lora-slot-strength {
     display: flex;
@@ -334,7 +350,7 @@ html, body {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #555;
+    background: var(--offline);
     flex: 0 0 auto;
 }
 
@@ -351,7 +367,7 @@ html, body {
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--overlay);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -420,7 +436,7 @@ html, body {
 }
 
 .hint {
-    color: #5a6172;
+    color: var(--text-faint);
     font-family: Consolas, monospace;
     font-size: 11px;
 }
@@ -552,12 +568,32 @@ textarea {
     display: block;
 }
 
+/* Generation progress card */
+.progress-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 10px;
+}
+
+.progress-card[hidden] { display: none; }
+
+.progress-fill.indeterminate {
+    width: 35%;
+    animation: slide 1.1s ease-in-out infinite;
+}
+
+@keyframes slide {
+    0% { margin-left: -35%; }
+    100% { margin-left: 100%; }
+}
+
 /* ---------- Log ---------- */
 .log-box {
     flex: 1;
     min-height: 60px;
     max-height: 320px;
-    background: #0a0c10;
+    background: var(--bg-log);
     border-radius: 6px;
     padding: 8px;
     overflow-y: auto;
@@ -567,7 +603,7 @@ textarea {
 }
 
 .log-line { white-space: pre-wrap; word-break: break-all; color: var(--text-dim); }
-.log-line.server { color: #b8c0d0; }
+.log-line.server { color: var(--text-log); }
 .log-line.error { color: var(--danger); }
 .log-line.info { color: var(--text-dim); }
 
@@ -597,8 +633,10 @@ textarea {
 
 .mode-btn.active {
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
+    border-color: var(--accent);
 }
+
 
 .edit-panel {
     display: flex;
@@ -830,7 +868,7 @@ textarea {
 .gallery-item .gallery-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0,0,0,0.55);
+    background: var(--overlay-soft);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -854,9 +892,9 @@ textarea {
     padding: 3px 8px;
     font-size: 10px;
     border-radius: 4px;
-    border: 1px solid rgba(255,255,255,0.35);
-    background: rgba(0,0,0,0.55);
-    color: #fff;
+    border: 1px solid var(--btn-hover-border);
+    background: var(--overlay-soft);
+    color: var(--on-accent);
     cursor: pointer;
 }
 
@@ -874,7 +912,7 @@ textarea {
 .preview-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.8);
+    background: var(--overlay-strong);
     display: none;
     align-items: center;
     justify-content: center;
@@ -911,8 +949,8 @@ textarea {
 /* ---------- Scrollbars ---------- */
 ::-webkit-scrollbar { width: 9px; height: 9px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #2c3240; border-radius: 5px; }
-::-webkit-scrollbar-thumb:hover { background: #3a4252; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 1300px) {

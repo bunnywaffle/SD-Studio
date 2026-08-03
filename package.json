@@ -30,6 +30,15 @@
       "src/**/*",
       "package.json"
     ],
+    "extraResources": [
+      {
+        "from": "themes",
+        "to": "themes",
+        "filter": [
+          "*.css"
+        ]
+      }
+    ],
     "win": {
       "target": [
         "nsis",

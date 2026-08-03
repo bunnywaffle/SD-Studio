@@ -11,6 +11,7 @@ const { ServerApiClient } = require('./src/api');
 const { loadStyles, getStylesFilePath } = require('./src/styles');
 const models = require('./src/models');
 const releases = require('./src/releases');
+const themes = require('./src/themes');
 
 // Isolate the E2E test so it never touches the user's real settings/data.
 if (process.env.SDCPP_E2E === '1') {
@@ -397,6 +398,31 @@ ipcMain.handle('styles:openFile', async () => {
         const filePath = getStylesFilePath();
         const res = await shell.openPath(filePath);
         return { ok: res === '', filePath };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+});
+
+ipcMain.handle('theme:list', () => {
+    try {
+        return { ok: true, themes: themes.listThemes() };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+});
+
+ipcMain.handle('theme:get', (e, name) => {
+    try {
+        return { ok: true, name: name || null, css: themes.getThemeCss(name) };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+});
+
+ipcMain.handle('theme:openDir', () => {
+    try {
+        const dir = themes.openThemesDir();
+        return { ok: true, dir };
     } catch (err) {
         return { ok: false, error: err.message };
     }

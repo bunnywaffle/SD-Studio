@@ -1,0 +1,39 @@
+/* ============================================================
+   SD.cpp Studio Theme: Neutral (default)
+   ------------------------------------------------------------
+   This file is user-editable. Change any value below and click
+   "Reload theme" in Settings, or restart the app, to apply it.
+   Every theme is a list of CSS variables that the whole app
+   reads from. Colors are in any CSS format (hex, rgb, hsl...).
+   ============================================================ */
+:root {
+    --bg: #1a1a1a;
+    --bg-panel: #222222;
+    --bg-card: #2a2a2a;
+    --bg-input: #1e1e1e;
+    --border: #3a3a3a;
+    --text: #e8e8e8;
+    --text-dim: #9a9a9a;
+    --text-faint: #6b6b6b;
+    --accent: #8a8a8a;
+    --accent-hover: #a0a0a0;
+    --accent-2: #6b6b6b;
+    --on-accent: #ffffff;
+    --danger: #e5534b;
+    --danger-hover: #f0605a;
+    --danger-bg: rgba(229, 83, 75, 0.12);
+    --danger-text: #ffb4bd;
+    --ok: #3fb950;
+    --warn: #d29922;
+    --offline: #555555;
+    --btn-bg: #333333;
+    --btn-hover-bg: #3d3d3d;
+    --btn-hover-border: #4a4a4a;
+    --overlay: rgba(0, 0, 0, 0.6);
+    --overlay-soft: rgba(0, 0, 0, 0.55);
+    --overlay-strong: rgba(0, 0, 0, 0.8);
+    --scrollbar: #3a3a3a;
+    --scrollbar-hover: #4a4a4a;
+    --bg-log: #161616;
+    --text-log: #c6c6c6;
+}

@@ -11,6 +11,11 @@ contextBridge.exposeInMainWorld('sdcpp', {
     getStyles: () => ipcRenderer.invoke('styles:get'),
     openStylesFile: () => ipcRenderer.invoke('styles:openFile'),
 
+    // themes (user-editable css in userData/themes)
+    listThemes: () => ipcRenderer.invoke('theme:list'),
+    getTheme: (name) => ipcRenderer.invoke('theme:get', name),
+    openThemesDir: () => ipcRenderer.invoke('theme:openDir'),
+
     // models (folder-based detection)
     getModels: () => ipcRenderer.invoke('models:get'),
     chooseModelsDir: () => ipcRenderer.invoke('models:chooseDir'),

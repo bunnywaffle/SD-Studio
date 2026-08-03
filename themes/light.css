@@ -1,0 +1,36 @@
+/* ============================================================
+   SD.cpp Studio Theme: Light
+   ------------------------------------------------------------
+   User-editable. Change values and reload the theme.
+   ============================================================ */
+:root {
+    --bg: #f4f4f4;
+    --bg-panel: #ffffff;
+    --bg-card: #ececec;
+    --bg-input: #f9f9f9;
+    --border: #d0d0d0;
+    --text: #222222;
+    --text-dim: #6b6b6b;
+    --text-faint: #999999;
+    --accent: #8a8a8a;
+    --accent-hover: #6f6f6f;
+    --accent-2: #a0a0a0;
+    --on-accent: #ffffff;
+    --danger: #c42b1c;
+    --danger-hover: #a82417;
+    --danger-bg: rgba(196, 43, 28, 0.1);
+    --danger-text: #8c2a1f;
+    --ok: #1a7f37;
+    --warn: #9a6700;
+    --offline: #b5b5b5;
+    --btn-bg: #e0e0e0;
+    --btn-hover-bg: #d4d4d4;
+    --btn-hover-border: #bdbdbd;
+    --overlay: rgba(0, 0, 0, 0.4);
+    --overlay-soft: rgba(0, 0, 0, 0.35);
+    --overlay-strong: rgba(0, 0, 0, 0.6);
+    --scrollbar: #c4c4c4;
+    --scrollbar-hover: #ababab;
+    --bg-log: #ffffff;
+    --text-log: #333333;
+}

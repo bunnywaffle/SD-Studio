@@ -35,7 +35,8 @@ class SettingsStore {
             batchCount: 1,
             sampler: 'euler_a',
             scheduler: 'discrete',
-            outputFormat: 'png'
+            outputFormat: 'png',
+            theme: 'neutral'
         };
         this.load();
     }

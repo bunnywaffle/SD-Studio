@@ -246,6 +246,10 @@
                 <button class="btn btn-danger" id="btnCancel" disabled>Cancel</button>
                 <span class="gen-status" id="genStatus"></span>
             </div>
+            <div class="progress-card card" id="genProgressCard" hidden>
+                <div class="progress-bar"><div class="progress-fill" id="genProgressFill"></div></div>
+                <span class="progress-text" id="genProgressText"></span>
+            </div>
         </section>
 
         <!-- ============ RIGHT: Gallery ============ -->
@@ -348,6 +352,18 @@
                         <input type="text" id="loraDirInput" placeholder="loras/ subfolder is auto-detected" readonly />
                     </div>
                     <p class="field-note">Pick model / text encoder / VAE / LoRA on the main screen.</p>
+                </section>
+                <section class="card">
+                    <h2 class="card-title">Theme</h2>
+                    <div class="field-row">
+                        <label>Theme <span class="hint">(user-editable CSS)</span></label>
+                        <div class="inline-controls">
+                            <select id="themeSelect"></select>
+                            <button class="btn btn-sm" id="btnThemeOpen" title="Open the themes folder in your file manager">Open themes folder</button>
+                            <button class="btn btn-sm" id="btnThemeReload" title="Re-apply the selected theme file">Reload</button>
+                        </div>
+                    </div>
+                    <p class="field-note">Theme files live in the themes folder as plain CSS. Edit any value, save, then click Reload. New theme files added to that folder appear in the dropdown.</p>
                 </section>
             </div>
         </div>
