@@ -6,6 +6,7 @@ An Electron desktop app for managing the [stable-diffusion.cpp](https://github.c
 
 - **Backend manager** — three ways to set up `sd-server`: import a release ZIP, download the latest release from GitHub, or **link an already-extracted backend folder** directly (no copying). Backend setup lives in the **Settings** dialog (gear icon), keeping the main UI focused on generation.
 - **Folder-based models** — point the app at one model folder; it auto-detects models, LoRAs, VAEs, and text encoders from a fixed subfolder layout (`models/`, `loras/`, `vae/`, `text_encoders/`). The app can create the structure for you (one click, or at the default location).
+- **Import from any folder (symlink)** — a **Link file** picker on the main screen imports a model/LoRA/VAE/text encoder from anywhere on disk: the app links the file into the right subfolder (symlink; falls back to a hard link on the same drive), scans it into the pickers, and auto-selects it. No copying, no re-arranging your existing downloads.
 - **Image editing (reference-image)** — a **Generate / Edit image** toggle on the main screen. In Edit mode, load any image and describe the change in the prompt (e.g. "make it rainy and moody"); a strength slider (0–1) is passed through. Sent to the server as native `ref_images[]`, which is the universal mechanism for **every** supported edit model (FLUX.2, FLUX Kontext, Qwen Image Edit/Layered, LongCat, Boogu, Krea2, Mage-Flow, Anima, instruct-pix2pix, ...). The server auto-selects the right `--ref-image-args` preset from the model architecture; VLM-based models (Qwen Edit, LongCat, Boogu, Krea2, Mage-Flow) additionally need a **Vision encoder** selected (an mmproj file in `text_encoders/`), and an advanced **Ref-image args** field is available to override the preset (`preset=qwen_layered`).
 - **Server control** — start/stop with auto-built args (`--listen-ip`, `--listen-port`, `--diffusion-model`, `--vae`, `--llm`, `--llm_vision`, `--ref-image-args`, `--lora-model-dir`, extra args) and live server log output.
 - **Model pickers on the main screen** — collapsible **Models** card on the left picks the diffusion model, text encoder, vision encoder, and VAE. LoRAs are stacked as multiple slots, each with its own picker and a **strength slider** (0–2) — use "+ Add LoRA" to stack more. The server log is collapsible too.
@@ -20,7 +21,7 @@ An Electron desktop app for managing the [stable-diffusion.cpp](https://github.c
 - Node.js 20+ (developed against Node 24)
 - npm
 - Electron 31 (installed via npm)
-- A model file (`.gguf` or `.safetensors` + `--diffusion-model`) for actual image generation
+- A model file for actual image generation — any supported weight format: `.gguf`, `.safetensors`, `.ckpt`, `.pth`, or `.pt`
 
 ## Getting started
 
@@ -55,11 +56,29 @@ Configure host/port/extra args in the same dialog.
 3. Drop your files into the matching subfolders. The app auto-detects them (dots next to each subfolder turn green when files are found) and populates the **Diffusion model**, **VAE**, **Text encoder**, and **Vision encoder** pickers on the main screen. Files in `text_encoders/` whose name looks like a vision model (contains `mmproj`, `vision`, `vl`, ...) are offered in the **Vision encoder** picker.
 4. Select which model/VAE/text encoder to use, then **Start Server**.
 
-> `.gguf`/`.bin` models are passed via `-m` (unified model); `.safetensors`/`.ckpt`/`.pth`/`.pt` via `--diffusion-model`. LoRAs in `loras/` are selectable from the LoRA slots on the main screen, each with its own strength slider.
+### Importing files from anywhere (no re-arranging)
 
-## Model type note
+Don't want to copy a model into the folder structure? Use **Models → Link file** on the main screen:
 
-All diffusion model files (`.gguf`, `.safetensors`, `.ckpt`, `.pth`, `.pt`, `.bin`) are launched with `--diffusion-model`. This is the flag stable-diffusion.cpp requires for FLUX-family models — it prepends the `model.diffusion_model.` tensor prefix when loading, which is how the model type is detected. `--vae`, `--llm`, and `--lora-model-dir` come from the `vae/`, `text_encoders/`, and `loras/` subfolders.
+1. Pick the type (**Diffusion model / LoRA / VAE / Text encoder / Vision encoder**).
+2. Click **Link file…** and choose the file anywhere on disk (`.gguf`, `.safetensors`, etc.).
+3. The app links it into the matching subfolder — a **symlink** (needs Developer Mode/admin on Windows), falling back to a **hard link** if it's on the same drive. It then appears in the pickers and is auto-selected, no copying or moving required.
+
+> Keep the linked file where it is; only the link lives in the models folder. If a link can't be created (e.g. cross-drive without Developer Mode), the app tells you what to enable.
+
+> `.safetensors`/`.ckpt`/`.pth`/`.pt` are passed via `-m` (unified loader); `.gguf`/`.bin` via `--diffusion-model`. LoRAs in `loras/` are selectable from the LoRA slots on the main screen, each with its own strength slider.
+
+## Model weight formats
+
+stable-diffusion.cpp supports three weight formats, and the app detects and launches all of them — the **Diffusion model** picker lists every file in `models/` regardless of format, and the launch flag is chosen automatically from the file extension:
+
+| Format | Launch flag |
+| :--- | :--- |
+| GGUF (`.gguf`) / `.bin` | `--diffusion-model` |
+| Safetensors (`.safetensors`) | `-m` (unified loader) |
+| Pytorch checkpoint (`.ckpt`, `.pth`, `.pt`) | `-m` (unified loader) |
+
+GGUF files carry architecture metadata and go through `--diffusion-model` (the proven path for FLUX-family gguf). Raw Pytorch / Safetensors checkpoints use the unified `-m` loader, which auto-detects the architecture from the weights — exactly how the upstream `sd-cli -m model.safetensors` quickstart works. `--vae`, `--llm`, `--llm_vision`, and `--lora-model-dir` come from the `vae/`, `text_encoders/`, and `loras/` subfolders.
 
 ## Progress
 

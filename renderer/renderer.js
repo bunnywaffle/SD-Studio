@@ -34,6 +34,14 @@ const el = {
     btnSaveSettings: document.getElementById('btnSaveSettings'),
     backendAlert: document.getElementById('backendAlert'),
 
+    dataDirInput: document.getElementById('dataDirInput'),
+    btnDataDirChange: document.getElementById('btnDataDirChange'),
+    btnDataDirReset: document.getElementById('btnDataDirReset'),
+    btnDataDirOpen: document.getElementById('btnDataDirOpen'),
+    dataMigrateWrap: document.getElementById('dataMigrateWrap'),
+    dataMigrateFill: document.getElementById('dataMigrateFill'),
+    dataMigrateText: document.getElementById('dataMigrateText'),
+
     themeSelect: document.getElementById('themeSelect'),
     btnThemeOpen: document.getElementById('btnThemeOpen'),
     btnThemeReload: document.getElementById('btnThemeReload'),
@@ -59,6 +67,8 @@ const el = {
     selVisionEncoder: document.getElementById('selVisionEncoder'),
     selVae: document.getElementById('selVae'),
     loraDirInput: document.getElementById('loraDirInput'),
+    linkModelType: document.getElementById('linkModelType'),
+    btnLinkModelFile: document.getElementById('btnLinkModelFile'),
 
     prompt: document.getElementById('prompt'),
     negativePrompt: document.getElementById('negativePrompt'),
@@ -158,6 +168,9 @@ function convLogMessages(logs) {
 
 function describeBackendError(state) {
     const msgs = convLogMessages(state.logs).join('\n');
+    if (/unsupported dtype/.test(msgs)) {
+        return 'The model file uses a quantization dtype this backend build does not support (e.g. I8). Try a different model variant (plain .gguf / .safetensors, not an int4/convrot quant), or update to a newer stable-diffusion.cpp release.';
+    }
     if (/get sd version from file failed/.test(msgs)) {
         return 'The diffusion model file could not be identified. It is either not a GGUF made for stable-diffusion.cpp, or it needs to be selected in Settings.';
     }
@@ -889,8 +902,9 @@ function fillModelSelect(select, files, currentPath, noneLabel) {
     select.innerHTML = '';
     select.appendChild(new Option(noneLabel || 'None', ''));
     for (const f of files || []) {
-        const opt = new Option(f.name, f.path);
-        opt.title = f.path;
+        const label = f.empty ? `${f.name}  ⚠ empty (0 bytes)` : f.name;
+        const opt = new Option(label, f.path);
+        opt.title = f.path + (f.empty ? ' — 0 bytes, download may be incomplete' : '');
         select.appendChild(opt);
     }
     if (currentPath && Array.from(select.options).some((o) => o.value === currentPath)) {
@@ -902,7 +916,12 @@ function fillModelSelect(select, files, currentPath, noneLabel) {
 
 async function onModelSelect() {
     const val = el.selModel.value;
-    const patch = { modelPath: '', diffusionModelPath: val || '' };
+    const picked = (modelsState.models || []).find((m) => m.path === val);
+    // .safetensors/.ckpt/.pth/.pt load via the unified -m flag; .gguf/.bin via
+    // --diffusion-model. Pick the matching setting so buildLaunchArgs uses the right flag.
+    const patch = picked && picked.mode === 'unified'
+        ? { modelPath: val || '', diffusionModelPath: '' }
+        : { modelPath: '', diffusionModelPath: val || '' };
     await api.setSettings(patch);
     settings = await api.getSettings();
     renderModels();
@@ -954,11 +973,99 @@ async function createModelStructure() {
     setGenStatus('Model folder structure created.', 'done');
 }
 
+async function linkModelFile() {
+    const type = el.linkModelType.value;
+    setGenStatus('Picking file...', 'busy');
+    const res = await api.linkModelFile({ type });
+    if (!res.ok) {
+        setGenStatus(`Link failed: ${res.error}`, 'error');
+        setBusy(false);
+        return;
+    }
+    if (res.canceled) {
+        setGenStatus('', '');
+        setBusy(false);
+        return;
+    }
+    modelsState = res.scan;
+    settings = await api.getSettings();
+    renderModels();
+    const linkPath = res.linkPath || '';
+    const patch = {};
+    if (type === 'diffusion') {
+        const linked = (res.scan.models || []).find((m) => m.path === linkPath);
+        if (linked && linked.mode === 'unified') {
+            patch.modelPath = linkPath; patch.diffusionModelPath = '';
+        } else {
+            patch.modelPath = ''; patch.diffusionModelPath = linkPath;
+        }
+    }
+    else if (type === 'vae') patch.vaePath = linkPath;
+    else if (type === 'textEncoder') patch.textEncoderPath = linkPath;
+    else if (type === 'visionEncoder') patch.visionEncoderPath = linkPath;
+    else if (type === 'lora' && res.linkPath && !loraSlots.some((s) => s.path === res.linkPath)) {
+        loraSlots.push({ path: res.linkPath, name: res.name || '' });
+        saveLoraSlots();
+    }
+    if (Object.keys(patch).length) {
+        settings = await api.setSettings(patch);
+    }
+    renderModels();
+    setGenStatus(`Linked ${res.name || 'file'}`, 'done');
+}
+
+// ---------- App data folder ----------
+async function loadDataInfo() {
+    const info = await api.getDataInfo();
+    if (!info) return;
+    el.dataDirInput.value = info.current || '';
+    el.dataDirInput.title = info.current || '';
+    el.btnDataDirReset.disabled = !info.custom;
+}
+
+async function changeDataDir() {
+    const dir = await api.pickDirectory({ title: 'Choose the self-contained app data folder' });
+    if (!dir) return;
+    el.dataMigrateWrap.hidden = false;
+    el.dataMigrateFill.style.width = '0%';
+    el.dataMigrateText.textContent = 'Preparing...';
+    const res = await api.setDataDir(dir);
+    if (!res.ok) {
+        el.dataMigrateWrap.hidden = true;
+        setGenStatus(`Data folder change failed: ${res.error}`, 'error');
+        return;
+    }
+    if (res.restarting) {
+        el.dataMigrateText.textContent = 'Done. Restarting the app...';
+        setGenStatus('App data folder changed. Restarting...', 'busy');
+    }
+}
+
+async function resetDataDir() {
+    if (!window.confirm('Reset the app data folder to the default location? The app will restart.')) return;
+    const res = await api.resetDataDir();
+    if (res.ok && res.restarting) {
+        setGenStatus('Reverting to default app data location. Restarting...', 'busy');
+    }
+}
+
 // ---------- Backend operations ----------
 async function startServer() {
     await saveSettingsFromUi();
-    if (!(settings.modelPath || settings.diffusionModelPath)) {
+    const modelPath = settings.modelPath || settings.diffusionModelPath;
+    if (!modelPath) {
         setGenStatus('No model selected. Pick a diffusion model in Settings → Models.', 'error');
+        el.settingsModal.hidden = false;
+        setBusy(false);
+        return;
+    }
+    const emptyFiles = await api.checkModelFiles([settings.modelPath, settings.diffusionModelPath].filter(Boolean));
+    const empty = (emptyFiles || []).find((f) => f.empty);
+    if (empty) {
+        setGenStatus(
+            `The model file "${empty.name}" is empty (0 bytes) — the download is incomplete or corrupt. Delete it from the Models folder and re-download it.`,
+            'error'
+        );
         el.settingsModal.hidden = false;
         setBusy(false);
         return;
@@ -1139,6 +1246,14 @@ function bindEvents() {
     el.btnLinkFolder.addEventListener('click', linkBackendFolder);
     el.btnAddLora.addEventListener('click', addLoraSlot);
 
+    // App data folder
+    el.btnDataDirChange.addEventListener('click', changeDataDir);
+    el.btnDataDirReset.addEventListener('click', resetDataDir);
+    el.btnDataDirOpen.addEventListener('click', async () => {
+        const info = await api.getDataInfo();
+        if (info && info.current) await api.openPath(info.current);
+    });
+
     // Mode toggle + image editing
     el.modeGenerate.addEventListener('click', () => setEditMode(false));
     el.modeEdit.addEventListener('click', () => setEditMode(true));
@@ -1199,6 +1314,7 @@ function bindEvents() {
     el.selVae.addEventListener('change', onVaeSelect);
     el.selTextEncoder.addEventListener('change', onTextEncoderSelect);
     el.selVisionEncoder.addEventListener('change', onVisionEncoderSelect);
+    el.btnLinkModelFile.addEventListener('click', linkModelFile);
 
     el.btnBrowseServer.addEventListener('click', async () => {
         const p = await api.pickFile({ title: 'Select sd-server executable', filters: [{ name: 'Server executable', extensions: ['exe', '*'] }] });
@@ -1274,6 +1390,13 @@ function subscribe() {
     api.onRuntimeFixProgress((p) => {
         const pct = p.total ? Math.round((p.received / p.total) * 100) : 0;
         setRuntimeProgress(p.message || `${p.phase || ''}...`, pct);
+    });
+
+    api.onDataMigrateProgress((p) => {
+        el.dataMigrateWrap.hidden = false;
+        const pct = p.total ? Math.round((p.copied / p.total) * 100) : 100;
+        el.dataMigrateFill.style.width = `${pct}%`;
+        el.dataMigrateText.textContent = `Copying app data... ${fmtBytes(p.copied)} / ${fmtBytes(p.total)} (${pct}%)`;
     });
 
     api.onServerReady(() => {
@@ -1460,6 +1583,7 @@ async function init() {
     subscribe();
     settings = await api.getSettings();
     applySettingsToUi();
+    await loadDataInfo();
     await loadStyles();
     await loadThemes();
     await applyTheme(settings.theme || 'neutral');

@@ -13,12 +13,17 @@ const models = require('./src/models');
 const releases = require('./src/releases');
 const themes = require('./src/themes');
 const runtime = require('./src/runtime');
+const dataDir = require('./src/dataDir');
 
 // Isolate the E2E test so it never touches the user's real settings/data.
 if (process.env.SDCPP_E2E === '1') {
     app.setPath('userData', path.join(os.tmpdir(), 'sdcpp-e2e-userdata'));
     try { fs.rmSync(app.getPath('userData'), { recursive: true, force: true }); } catch {}
 }
+
+// Apply the user's self-contained app-data folder before anything reads
+// app.getPath('userData') (SettingsStore, themes, styles, backends, ...).
+dataDir.applyDataDir();
 
 let mainWindow = null;
 const settings = new SettingsStore();
@@ -156,6 +161,10 @@ function runE2ECheck() {
     const errors = [];
     const MOCK_PORT = parseInt(process.env.SDCPP_E2E_PORT || '7777', 10);
     const MODELS_DIR = path.join(os.tmpdir(), 'sdcpp-e2e-models');
+    const IMPORT_DIR = path.join(os.tmpdir(), 'sdcpp-e2e-import');
+    try { fs.rmSync(MODELS_DIR, { recursive: true, force: true }); } catch {}
+    try { fs.rmSync(IMPORT_DIR, { recursive: true, force: true }); } catch {}
+    try { fs.mkdirSync(IMPORT_DIR, { recursive: true }); } catch {}
     mainWindow.webContents.on('console-message', (e, level, message) => {
         if (level >= 2) {
             errors.push(`renderer-console: ${message}`);
@@ -189,20 +198,30 @@ function runE2ECheck() {
                     && created.subDirs.models && created.subDirs.loras && created.subDirs.vae && created.subDirs.textEncoders);
                 // drop a dummy model + lora file
                 await window.sdcpp.writeFile(created.subDirs.models + '/test-model.safetensors', [1,2,3]);
+                await window.sdcpp.writeFile(created.subDirs.models + '/test-model.gguf', [1,2,3]);
                 await window.sdcpp.writeFile(created.subDirs.loras + '/test-lora.safetensors', [1,2,3]);
                 await window.sdcpp.writeFile(created.subDirs.textEncoders + '/mmproj-test.gguf', [1,2,3]);
                 // refresh page models state so the dropdowns are populated
                 await window.refreshModels();
                 const scan = await window.sdcpp.getModels();
-                const detectOk = scan.ok && scan.models.length === 1 && scan.loras.length === 1;
-                // select the detected model via dropdown
+                const detectOk = scan.ok && scan.models.length === 2 && scan.loras.length === 1;
+                // select each format and confirm the right launch setting is used:
+                //   .safetensors/.ckpt/.pth/.pt  ->  modelPath (-m, unified)
+                //   .gguf/.bin                   ->  diffusionModelPath (--diffusion-model)
+                const ggufModel = scan.models.find((m) => m.name === 'test-model.gguf');
+                const stModel = scan.models.find((m) => m.name === 'test-model.safetensors');
                 const selModel = document.getElementById('selModel');
                 const modelOpts = selModel.options.length;
-                selModel.value = scan.models[0].path;
+                selModel.value = stModel.path;
                 selModel.dispatchEvent(new Event('change'));
                 await new Promise(r => setTimeout(r, 200));
                 const selState = await window.sdcpp.getSettings();
-                const selectOk = selState.diffusionModelPath === scan.models[0].path;
+                const unifiedOk = selState.modelPath === stModel.path && !selState.diffusionModelPath;
+                selModel.value = ggufModel.path;
+                selModel.dispatchEvent(new Event('change'));
+                await new Promise(r => setTimeout(r, 200));
+                const ggufState = await window.sdcpp.getSettings();
+                const diffusionOk = ggufState.diffusionModelPath === ggufModel.path && !ggufState.modelPath;
 
                 // Vision encoder: detected in text_encoders/ and selectable
                 const visionSelect = document.getElementById('selVisionEncoder');
@@ -212,6 +231,18 @@ function runE2ECheck() {
                     && scan.visionEncoders.some((f) => /mmproj/i.test(f.name))
                     && visionSelect
                     && Array.from(visionSelect.options).some((o) => /mmproj/i.test(o.value));
+
+                // --- Import model by link (symlink/hardlink from anywhere) ---
+                const importSrc = ${JSON.stringify(path.join(IMPORT_DIR, 'imported-model.safetensors'))};
+                await window.sdcpp.writeFile(importSrc, [1, 2, 3, 4]);
+                const importLinkRes = await window.sdcpp.linkModelFile({ type: 'diffusion', filePath: importSrc });
+                const importLinkScan = await window.sdcpp.getModels();
+                const importLinkOk = importLinkRes.ok && !importLinkRes.canceled
+                    && Array.isArray(importLinkScan.models)
+                    && importLinkScan.models.some((f) => f.name === 'imported-model.safetensors');
+                // the link button + type dropdown exist in the UI
+                const importLinkUiOk = !!document.getElementById('btnLinkModelFile')
+                    && !!document.getElementById('linkModelType');
 
                 // --- generation ---
                 document.getElementById('prompt').value = 'a red cube on a table';
@@ -312,17 +343,21 @@ function runE2ECheck() {
                     structureOk,
                     detectOk,
                     modelOpts,
-                    selectOk,
+                    unifiedOk,
+                    diffusionOk,
                     visionOk,
-                    linkOk,
+                    importLinkOk,
+                    importLinkUiOk,
+                    importLinkRes,
+                    importLinkScan,
                 };
             })()`);
 
             const checks = result.jobStatus === 'completed' && result.hasImages
                 && result.ratioSizeOk && result.styleApplied
-                && result.structureOk && result.detectOk && result.selectOk
+                && result.structureOk && result.detectOk && result.unifiedOk && result.diffusionOk
                 && result.visionOk
-                && result.linkOk
+                && result.importLinkOk && result.importLinkUiOk
                 && result.loraSlotOk && result.loraStrengthOk
                 && result.editOk && result.editClearedOk
                 && errors.length === 0;
@@ -395,6 +430,43 @@ ipcMain.handle('models:createStructure', (e, dir) => {
     } catch (err) {
         return { ok: false, error: err.message };
     }
+});
+
+ipcMain.handle('models:checkFiles', (e, paths) => {
+    const results = [];
+    for (const p of (paths || []).filter(Boolean)) {
+        try {
+            const st = fs.statSync(p);
+            results.push({ path: p, exists: true, size: st.size, empty: st.size === 0 });
+        } catch {
+            results.push({ path: p, exists: false, size: 0, empty: true });
+        }
+    }
+    return results;
+});
+
+ipcMain.handle('models:linkFile', async (e, opts) => {
+    const type = (opts && opts.type) || 'diffusion';
+    const dir = settings.get('modelDir') || '';
+    const filters = { name: 'Model files', extensions: models.EXTENSIONS.models };
+    if (type === 'lora') filters.extensions = models.EXTENSIONS.loras;
+    else if (type === 'vae') filters.extensions = models.EXTENSIONS.vae;
+    else if (type === 'textEncoder' || type === 'visionEncoder') filters.extensions = models.EXTENSIONS.textEncoders;
+
+    let filePath = opts && opts.filePath;
+    if (!filePath) {
+        const res = await dialog.showOpenDialog(mainWindow, {
+            title: 'Link model file into the models folder',
+            properties: ['openFile'],
+            filters: [filters],
+        });
+        if (res.canceled || !res.filePaths.length) return { ok: true, canceled: true };
+        filePath = res.filePaths[0];
+    }
+
+    const link = models.linkModelFile(filePath, type, dir);
+    if (!link.ok) return link;
+    return { ok: true, canceled: false, ...link, scan: models.scan(dir) };
 });
 
 // --- IPC: style templates ------------------------------------------------
@@ -669,6 +741,43 @@ ipcMain.handle('dialog:saveImage', async (e, { defaultName }) => {
 ipcMain.handle('shell:openPath', async (e, target) => {
     if (!target) return;
     shell.openPath(target);
+});
+
+// --- IPC: app data folder (self-contained data root) ---------------------
+
+ipcMain.handle('data:get', () => dataDir.getDataDirInfo());
+
+ipcMain.handle('data:set', async (e, dir) => {
+    try {
+        const current = dataDir.getDataDirInfo().current;
+        if (dir && path.resolve(dir) === path.resolve(current)) {
+            return { ok: false, error: 'That is already the app data folder.' };
+        }
+        const mig = await dataDir.migrate(current, dir, (p) => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('data:migrateProgress', p);
+            }
+        });
+        if (!mig.ok) return mig;
+        const set = dataDir.setDataDir(dir);
+        if (!set.ok) return set;
+        setTimeout(() => {
+            app.relaunch();
+            app.exit(0);
+        }, 500);
+        return { ok: true, dataDir: dir, restarting: true, migrated: mig.migrated };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+});
+
+ipcMain.handle('data:reset', () => {
+    dataDir.resetDataDir();
+    setTimeout(() => {
+        app.relaunch();
+        app.exit(0);
+    }, 500);
+    return { ok: true, restarting: true };
 });
 
 ipcMain.handle('fs:writeFile', async (e, { filePath, data }) => {

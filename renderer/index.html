@@ -39,7 +39,7 @@
                 </button>
                 <div class="card-body" id="modelsCardBody">
                     <div class="field-row">
-                        <label>Diffusion model <span class="hint">(--diffusion-model)</span></label>
+                        <label>Diffusion model <span class="hint">(.gguf/.bin → --diffusion-model; .safetensors/.ckpt/.pth/.pt → -m)</span></label>
                         <select id="selModel"></select>
                     </div>
                     <div class="field-row">
@@ -58,6 +58,19 @@
                         <label>LoRA <span class="hint">(stack multiple with +)</span></label>
                         <div id="loraSlots" class="lora-slots"></div>
                         <button class="btn btn-sm" id="btnAddLora" title="Add another LoRA slot">+ Add LoRA</button>
+                    </div>
+                    <div class="field-row link-model-row">
+                        <label>Link file <span class="hint">(import from any folder)</span></label>
+                        <div class="inline-controls">
+                            <select id="linkModelType">
+                                <option value="diffusion">Diffusion model</option>
+                                <option value="lora">LoRA</option>
+                                <option value="vae">VAE</option>
+                                <option value="textEncoder">Text encoder</option>
+                                <option value="visionEncoder">Vision encoder</option>
+                            </select>
+                            <button class="btn btn-sm" id="btnLinkModelFile" title="Pick a file anywhere on disk and link it into the models folder (symlink)">Link file…</button>
+                        </div>
                     </div>
                     <p class="field-note">Model changes require a server restart.</p>
                 </div>
@@ -284,6 +297,23 @@
                 </div>
             </div>
             <div class="modal-body">
+                <section class="card">
+                    <h2 class="card-title">App data folder</h2>
+                    <div class="field-row">
+                        <label>Self-contained data root <span class="hint">(settings, backends, styles, themes)</span></label>
+                        <div class="inline-controls">
+                            <input type="text" id="dataDirInput" placeholder="Default app data location" readonly />
+                            <button class="btn btn-sm" id="btnDataDirChange" title="Store all app data in a folder of your choice">Change…</button>
+                            <button class="btn btn-sm" id="btnDataDirReset" title="Revert to the default app data location">Reset</button>
+                            <button class="btn btn-sm" id="btnDataDirOpen" title="Open the app data folder in your file manager">Open</button>
+                        </div>
+                    </div>
+                    <div class="progress-wrap" id="dataMigrateWrap" hidden>
+                        <div class="progress-bar"><div class="progress-fill" id="dataMigrateFill"></div></div>
+                        <span class="progress-text" id="dataMigrateText"></span>
+                    </div>
+                    <p class="field-note">Everything the app stores — settings.json, downloaded/imported backends, styles.json, editable themes, and the default model folder — lives in this one folder. Changing it copies your existing data over and restarts the app.</p>
+                </section>
                 <section class="card">
                     <h2 class="card-title">Backend Server</h2>
                     <div class="field-row">

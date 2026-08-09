@@ -7,6 +7,12 @@ contextBridge.exposeInMainWorld('sdcpp', {
     getSettings: () => ipcRenderer.invoke('settings:get'),
     setSettings: (patch) => ipcRenderer.invoke('settings:set', patch),
 
+    // app data folder (self-contained data root)
+    getDataInfo: () => ipcRenderer.invoke('data:get'),
+    setDataDir: (dir) => ipcRenderer.invoke('data:set', dir),
+    resetDataDir: () => ipcRenderer.invoke('data:reset'),
+    onDataMigrateProgress: (cb) => ipcRenderer.on('data:migrateProgress', (e, p) => cb(p)),
+
     // style templates (styles.json)
     getStyles: () => ipcRenderer.invoke('styles:get'),
     openStylesFile: () => ipcRenderer.invoke('styles:openFile'),
@@ -21,6 +27,7 @@ contextBridge.exposeInMainWorld('sdcpp', {
     chooseModelsDir: () => ipcRenderer.invoke('models:chooseDir'),
     setModelsDir: (dir) => ipcRenderer.invoke('models:setDir', dir),
     createModelsStructure: (dir) => ipcRenderer.invoke('models:createStructure', dir),
+    linkModelFile: (opts) => ipcRenderer.invoke('models:linkFile', opts),
 
     // backend
     getBackendState: () => ipcRenderer.invoke('backend:state'),
@@ -46,6 +53,7 @@ contextBridge.exposeInMainWorld('sdcpp', {
     saveImage: (opts) => ipcRenderer.invoke('dialog:saveImage', opts),
     openPath: (target) => ipcRenderer.invoke('shell:openPath', target),
     writeFile: (filePath, data) => ipcRenderer.invoke('fs:writeFile', { filePath, data }),
+    checkModelFiles: (paths) => ipcRenderer.invoke('models:checkFiles', paths),
 
     // generation
     txt2img: (payload) => ipcRenderer.invoke('gen:txt2img', payload),
