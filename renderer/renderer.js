@@ -74,6 +74,11 @@ const el = {
     negativePrompt: document.getElementById('negativePrompt'),
     btnClearPrompt: document.getElementById('btnClearPrompt'),
     styleSelect: document.getElementById('styleSelect'),
+    stylePickerBtn: document.getElementById('stylePickerBtn'),
+    stylePickerLabel: document.getElementById('stylePickerLabel'),
+    stylePopover: document.getElementById('stylePopover'),
+    stylePopoverSearch: document.getElementById('stylePopoverSearch'),
+    styleList: document.getElementById('styleList'),
     btnStyleReload: document.getElementById('btnStyleReload'),
     btnStyleOpen: document.getElementById('btnStyleOpen'),
     steps: document.getElementById('steps'),
@@ -322,6 +327,75 @@ function renderStyleSelect() {
     } else {
         el.styleSelect.value = settings.selectedStyle || '';
     }
+    renderStyleList();
+    updateStylePickerLabel();
+}
+
+function renderStyleList() {
+    const list = el.styleList;
+    if (!list) return;
+    const current = el.styleSelect.value;
+    const q = (el.stylePopoverSearch.value || '').trim().toLowerCase();
+    list.innerHTML = '';
+
+    const rows = [];
+    const noneRow = document.createElement('button');
+    noneRow.type = 'button';
+    noneRow.className = 'style-row' + (current === '' ? ' active' : '');
+    noneRow.innerHTML = '<span class="style-row-name">None</span><span class="style-row-preview">No style template</span>';
+    noneRow.addEventListener('click', () => selectStyle(''));
+    rows.push(noneRow);
+
+    const filtered = styles.filter((s) => {
+        if (s.name.toLowerCase() === 'none') return false;
+        if (!q) return true;
+        return s.name.toLowerCase().includes(q) || (s.prompt || '').toLowerCase().includes(q);
+    });
+    for (const s of filtered) {
+        const row = document.createElement('button');
+        row.type = 'button';
+        row.className = 'style-row' + (String(s.id) === current ? ' active' : '');
+        const preview = (s.prompt || '').trim().replace(/\{prompt\}/g, '…').slice(0, 80);
+        row.innerHTML = `<span class="style-row-name">${esc(s.name)}</span><span class="style-row-preview">${esc(preview)}</span>`;
+        row.addEventListener('click', () => selectStyle(String(s.id)));
+        rows.push(row);
+    }
+    if (filtered.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'muted';
+        empty.textContent = 'No styles match.';
+        rows.push(empty);
+    }
+    for (const r of rows) list.appendChild(r);
+}
+
+function selectStyle(id) {
+    el.styleSelect.value = id;
+    handleStyleChange();
+    closeStylePopover();
+    renderStyleList();
+    updateStylePickerLabel();
+}
+
+function updateStylePickerLabel() {
+    const current = el.styleSelect.value;
+    const style = getSelectedStyle();
+    el.stylePickerLabel.textContent = style ? style.name : 'None';
+}
+
+function openStylePopover() {
+    el.stylePopover.hidden = false;
+    el.stylePickerBtn.classList.add('open');
+    renderStyleList();
+    if (el.stylePopoverSearch) {
+        el.stylePopoverSearch.value = '';
+        el.stylePopoverSearch.focus();
+    }
+}
+
+function closeStylePopover() {
+    el.stylePopover.hidden = true;
+    el.stylePickerBtn.classList.remove('open');
 }
 
 function getSelectedStyle() {
@@ -447,6 +521,8 @@ function base64ToUint8(b64) {
 }
 
 function renderGallery() {
+    const countEl = document.getElementById('galleryCount');
+    if (countEl) countEl.textContent = galleryItems.length ? `(${galleryItems.length})` : '';
     if (!galleryItems.length) {
         el.gallery.innerHTML = '<p class="muted">Generated images will appear here.</p>';
         return;
@@ -1217,6 +1293,7 @@ function applySettingsToUi() {
     el.width.value = settings.width || 512;
     el.height.value = settings.height || 512;
     el.styleSelect.value = settings.selectedStyle || '';
+    updateStylePickerLabel();
     el.steps.value = settings.steps || 20;
     el.cfgScale.value = settings.cfgScale || 7;
     el.seed.value = settings.seed != null ? settings.seed : -1;
@@ -1278,6 +1355,15 @@ function bindEvents() {
     // Settings modal
     el.btnSettings.addEventListener('click', () => { el.settingsModal.hidden = false; });
     el.btnSettingsClose.addEventListener('click', () => { el.settingsModal.hidden = true; });
+    document.querySelectorAll('.settings-tab').forEach((tab) => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.settings-tab').forEach((t) => t.classList.remove('active'));
+            document.querySelectorAll('.settings-tab-panel').forEach((p) => { p.hidden = true; });
+            tab.classList.add('active');
+            const panel = document.getElementById(tab.dataset.tab);
+            if (panel) panel.hidden = false;
+        });
+    });
     el.btnSaveSettings.addEventListener('click', async () => {
         await saveSettingsFromUi();
         setGenStatus('Settings saved.', 'done');
@@ -1327,7 +1413,26 @@ function bindEvents() {
     el.btnClearPrompt.addEventListener('click', () => { el.prompt.value = ''; el.negativePrompt.value = ''; });
     el.btnStyleReload.addEventListener('click', async () => { await loadStyles(); setGenStatus('Styles reloaded.', 'done'); });
     el.btnStyleOpen.addEventListener('click', async () => { await api.openStylesFile(); });
-    el.styleSelect.addEventListener('change', handleStyleChange);
+    el.styleSelect.addEventListener('change', () => {
+        handleStyleChange();
+        updateStylePickerLabel();
+    });
+    el.stylePickerBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (el.stylePopover.hidden) openStylePopover();
+        else closeStylePopover();
+    });
+    el.stylePopoverSearch.addEventListener('input', renderStyleList);
+    document.addEventListener('click', (e) => {
+        const picker = document.getElementById('stylePicker');
+        if (!el.stylePopover.hidden && picker && !picker.contains(e.target)) closeStylePopover();
+    });
+    el.stylePopover.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeStylePopover();
+            el.stylePickerBtn.focus();
+        }
+    });
     el.sizeMode.addEventListener('change', applySizeMode);
     el.ratioPreset.addEventListener('change', syncRatioFields);
     el.ratioW.addEventListener('input', () => {

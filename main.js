@@ -105,6 +105,7 @@ function createWindow() {
         minHeight: 700,
         title: 'SD.cpp Studio',
         backgroundColor: '#0f1115',
+        icon: path.join(__dirname, 'build', 'icon.png'),
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,

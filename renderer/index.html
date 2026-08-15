@@ -13,7 +13,7 @@
             <div class="logo">SD</div>
             <div class="brand-text">
                 <h1>SD.cpp Studio</h1>
-                <span class="subtitle">stable-diffusion.cpp image generation</span>
+                <span class="subtitle">stable-diffusion.cpp</span>
             </div>
         </div>
         <div class="server-status">
@@ -22,57 +22,60 @@
             <span class="server-url" id="serverUrl"></span>
         </div>
         <div class="header-actions">
-            <button class="btn" id="btnSettings" title="Backend &amp; server settings">&#9881; Settings</button>
-            <button class="btn" id="btnStart" title="Start the sd-server backend">Start Server</button>
-            <button class="btn btn-danger" id="btnStop" title="Stop the sd-server backend" disabled>Stop Server</button>
+            <button class="btn" id="btnSettings" title="Backend &amp; server settings">Settings</button>
+            <button class="btn btn-primary" id="btnStart" title="Start the sd-server backend">Start</button>
+            <button class="btn btn-danger" id="btnStop" title="Stop the sd-server backend" disabled>Stop</button>
         </div>
     </header>
 
     <div class="alert-banner" id="backendAlert" hidden></div>
 
     <main class="app-body">
-        <!-- ============ LEFT: Models + Log ============ -->
+        <!-- ============ LEFT: Model + Log ============ -->
         <aside class="panel left-panel">
-            <section class="card collapsible" id="modelsCard">
-                <button class="card-toggle" type="button" data-target="modelsCardBody">
-                    <span class="toggle-arrow">&#9662;</span> Models
-                </button>
-                <div class="card-body" id="modelsCardBody">
+            <section class="card" id="modelsCard">
+                <div class="card-head">
+                    <h2 class="card-title">Model</h2>
+                    <span class="card-sub">changes need a server restart</span>
+                </div>
+                <div class="card-section">
+                    <div class="section-label">Core</div>
                     <div class="field-row">
-                        <label>Diffusion model <span class="hint">(.gguf/.bin → --diffusion-model; .safetensors/.ckpt/.pth/.pt → -m)</span></label>
+                        <label>Diffusion model</label>
                         <select id="selModel"></select>
                     </div>
-                    <div class="field-row">
-                        <label>Text encoder <span class="hint">(--llm)</span></label>
-                        <select id="selTextEncoder"></select>
-                    </div>
-                    <div class="field-row">
-                        <label>Vision encoder <span class="hint">(--llm_vision; needed for VLM edit models)</span></label>
-                        <select id="selVisionEncoder"></select>
-                    </div>
-                    <div class="field-row">
-                        <label>VAE <span class="hint">(--vae)</span></label>
-                        <select id="selVae"></select>
-                    </div>
-                    <div class="field-row lora-field">
-                        <label>LoRA <span class="hint">(stack multiple with +)</span></label>
-                        <div id="loraSlots" class="lora-slots"></div>
-                        <button class="btn btn-sm" id="btnAddLora" title="Add another LoRA slot">+ Add LoRA</button>
-                    </div>
-                    <div class="field-row link-model-row">
-                        <label>Link file <span class="hint">(import from any folder)</span></label>
-                        <div class="inline-controls">
-                            <select id="linkModelType">
-                                <option value="diffusion">Diffusion model</option>
-                                <option value="lora">LoRA</option>
-                                <option value="vae">VAE</option>
-                                <option value="textEncoder">Text encoder</option>
-                                <option value="visionEncoder">Vision encoder</option>
-                            </select>
-                            <button class="btn btn-sm" id="btnLinkModelFile" title="Pick a file anywhere on disk and link it into the models folder (symlink)">Link file…</button>
+                    <div class="field-grid">
+                        <div class="field-row">
+                            <label>Text encoder</label>
+                            <select id="selTextEncoder"></select>
+                        </div>
+                        <div class="field-row">
+                            <label>VAE</label>
+                            <select id="selVae"></select>
+                        </div>
+                        <div class="field-row">
+                            <label>Vision encoder</label>
+                            <select id="selVisionEncoder"></select>
                         </div>
                     </div>
-                    <p class="field-note">Model changes require a server restart.</p>
+                </div>
+                <div class="card-section">
+                    <div class="section-label">LoRA <span class="hint">stack multiple</span></div>
+                    <div class="lora-slots" id="loraSlots"></div>
+                    <button class="btn btn-sm btn-add-lora" id="btnAddLora" title="Add another LoRA slot">+ Add LoRA</button>
+                </div>
+                <div class="card-section">
+                    <div class="section-label">Import model file</div>
+                    <div class="inline-controls">
+                        <select id="linkModelType">
+                            <option value="diffusion">Diffusion model</option>
+                            <option value="lora">LoRA</option>
+                            <option value="vae">VAE</option>
+                            <option value="textEncoder">Text encoder</option>
+                            <option value="visionEncoder">Vision encoder</option>
+                        </select>
+                        <button class="btn btn-sm" id="btnLinkModelFile" title="Pick a file anywhere on disk and link it into the models folder (symlink)">Link…</button>
+                    </div>
                 </div>
             </section>
 
@@ -86,7 +89,7 @@
             </section>
         </aside>
 
-        <!-- ============ CENTER: Generation / Edit ============ -->
+        <!-- ============ CENTER: Generate / Edit ============ -->
         <section class="panel center-panel">
             <div class="mode-toggle">
                 <button type="button" class="mode-btn active" id="modeGenerate">Generate</button>
@@ -105,7 +108,7 @@
                     <p class="muted">No image loaded. Load one, then describe the edit in the prompt below.</p>
                 </div>
                 <div class="edit-controls">
-                    <label>Strength <span class="hint">(edit strength; ignored by reference-image models like FLUX.2)</span></label>
+                    <label>Strength <span class="hint">(ignored by reference-image models like FLUX.2)</span></label>
                     <div class="strength-row">
                         <input type="range" id="editStrength" min="0" max="1" step="0.01" value="0.75" />
                         <span class="strength-val" id="editStrengthVal">0.75</span>
@@ -113,7 +116,11 @@
                 </div>
             </div>
 
-            <div class="prompt-card card">
+            <div class="card">
+                <div class="card-head">
+                    <h2 class="card-title">Prompt</h2>
+                    <button class="btn btn-sm" id="btnClearPrompt" title="Clear prompt and negative prompt">Clear</button>
+                </div>
                 <div class="field-row">
                     <label>Prompt</label>
                 </div>
@@ -123,47 +130,42 @@
                 </div>
                 <textarea id="negativePrompt" rows="2" placeholder="Things to avoid"></textarea>
                 <div class="styles-row">
-                    <label>Style template <span class="hint">(styles.json)</span></label>
-                    <div class="inline-controls">
-                        <select id="styleSelect">
-                            <option value="">None</option>
-                        </select>
-                        <button class="btn btn-sm" id="btnStyleReload" title="Reload styles.json from disk">Reload</button>
-                        <button class="btn btn-sm" id="btnStyleOpen" title="Open styles.json for editing">Edit JSON</button>
+                    <div class="styles-head">
+                        <label>Style <span class="hint">(styles.json)</span></label>
+                        <div class="inline-controls">
+                            <button class="btn btn-sm" id="btnStyleReload" title="Reload styles.json from disk">Reload</button>
+                            <button class="btn btn-sm" id="btnStyleOpen" title="Open styles.json for editing">Edit</button>
+                        </div>
                     </div>
-                </div>
-                <div class="prompt-tools">
-                    <button class="btn btn-sm" id="btnClearPrompt">Clear</button>
+                    <div class="style-picker" id="stylePicker">
+                        <button type="button" class="style-picker-btn" id="stylePickerBtn">
+                            <span id="stylePickerLabel">None</span>
+                            <span class="style-picker-chevron">&#9662;</span>
+                        </button>
+                        <div class="style-popover" id="stylePopover" hidden>
+                            <input type="text" id="stylePopoverSearch" placeholder="Filter styles…" />
+                            <div class="style-list" id="styleList"></div>
+                        </div>
+                    </div>
+                    <select id="styleSelect" hidden>
+                        <option value="">None</option>
+                    </select>
                 </div>
             </div>
 
-            <div class="params-card card">
+            <div class="card">
+                <div class="card-head">
+                    <h2 class="card-title">Generation</h2>
+                    <span class="card-sub">parameters</span>
+                </div>
                 <div class="param-grid">
                     <div class="param">
                         <label>Steps</label>
                         <input type="number" id="steps" value="20" min="1" max="150" />
                     </div>
                     <div class="param">
-                        <label>CFG Scale</label>
+                        <label>CFG</label>
                         <input type="number" id="cfgScale" value="7.0" min="0" max="30" step="0.5" />
-                    </div>
-                    <div class="param">
-                        <label>Size</label>
-                        <select id="sizeMode">
-                            <option value="manual">Manual W×H</option>
-                            <option value="ratio">Aspect ratio</option>
-                        </select>
-                    </div>
-                    <div class="param">
-                        <label>Batch count</label>
-                        <input type="number" id="batchCount" value="1" min="1" max="8" />
-                    </div>
-                    <div class="param">
-                        <label>Seed</label>
-                        <div class="inline-controls">
-                            <input type="number" id="seed" value="-1" />
-                            <button class="btn btn-sm" id="btnRandomSeed" title="Random seed (-1)">&#127922;</button>
-                        </div>
                     </div>
                     <div class="param">
                         <label>Sampler</label>
@@ -197,7 +199,18 @@
                         </select>
                     </div>
                     <div class="param">
-                        <label>Output format</label>
+                        <label>Batch</label>
+                        <input type="number" id="batchCount" value="1" min="1" max="8" />
+                    </div>
+                    <div class="param">
+                        <label>Seed</label>
+                        <div class="inline-controls">
+                            <input type="number" id="seed" value="-1" />
+                            <button class="btn btn-sm" id="btnRandomSeed" title="Random seed (-1)">&#127922;</button>
+                        </div>
+                    </div>
+                    <div class="param">
+                        <label>Format</label>
                         <select id="outputFormat">
                             <option value="png">PNG</option>
                             <option value="jpeg">JPEG</option>
@@ -205,12 +218,16 @@
                         </select>
                     </div>
                 </div>
-            </div>
 
-            <div class="size-card card">
-                <h2 class="card-title">Image Size</h2>
-                <div id="sizeManual">
-                    <div class="param-grid">
+                <div class="size-row">
+                    <div class="field-row size-mode-field">
+                        <label>Image size</label>
+                        <select id="sizeMode">
+                            <option value="manual">Manual W&#215;H</option>
+                            <option value="ratio">Aspect ratio</option>
+                        </select>
+                    </div>
+                    <div id="sizeManual" class="size-manual">
                         <div class="param">
                             <label>Width</label>
                             <input type="number" id="width" value="512" min="64" max="4096" step="8" />
@@ -220,9 +237,7 @@
                             <input type="number" id="height" value="512" min="64" max="4096" step="8" />
                         </div>
                     </div>
-                </div>
-                <div id="sizeRatio" hidden>
-                    <div class="param-grid">
+                    <div id="sizeRatio" class="size-ratio" hidden>
                         <div class="param">
                             <label>Aspect ratio</label>
                             <select id="ratioPreset">
@@ -241,24 +256,20 @@
                             <label>Megapixels</label>
                             <input type="number" id="megapixels" value="1.0" min="0.1" max="16" step="0.5" />
                         </div>
-                    </div>
-                    <div id="ratioCustom" class="ratio-custom" hidden>
-                        <div class="param-grid">
-                            <div class="param">
-                                <label>Ratio W</label>
+                        <div id="ratioCustom" class="param ratio-custom" hidden>
+                            <label>Ratio</label>
+                            <div class="inline-controls">
                                 <input type="number" id="ratioW" value="4" min="1" max="64" />
-                            </div>
-                            <div class="param">
-                                <label>Ratio H</label>
+                                <span class="ratio-colon">:</span>
                                 <input type="number" id="ratioH" value="3" min="1" max="64" />
                             </div>
                         </div>
+                        <p class="field-note" id="computedSize">→ 1024 × 1024</p>
                     </div>
-                    <p class="field-note" id="computedSize">→ 1024 × 1024</p>
                 </div>
             </div>
 
-            <div class="actions-card card">
+            <div class="actions-card">
                 <button class="btn btn-primary btn-generate" id="btnGenerate">Generate</button>
                 <button class="btn btn-danger" id="btnCancel" disabled>Cancel</button>
                 <span class="gen-status" id="genStatus"></span>
@@ -270,10 +281,10 @@
         </section>
 
         <!-- ============ RIGHT: Gallery ============ -->
-        <section class="panel right-panel">
+        <aside class="panel right-panel">
             <div class="card grow">
                 <div class="lora-header">
-                    <h2 class="card-title">Gallery</h2>
+                    <h2 class="card-title">Gallery <span class="gallery-count" id="galleryCount"></span></h2>
                     <div>
                         <button class="btn btn-sm" id="btnClearGallery" title="Clear gallery">Clear</button>
                         <button class="btn btn-sm" id="btnOpenGalleryDir" title="Open gallery folder">Open</button>
@@ -283,10 +294,10 @@
                     <p class="muted">Generated images will appear here.</p>
                 </div>
             </div>
-        </section>
+        </aside>
     </main>
 
-    <!-- ============ Settings modal ============ -->
+    <!-- ============ Settings modal (tabbed) ============ -->
     <div class="modal-overlay" id="settingsModal" hidden>
         <div class="modal">
             <div class="modal-header">
@@ -296,130 +307,152 @@
                     <button class="btn btn-sm" id="btnSettingsClose">Close</button>
                 </div>
             </div>
+            <div class="settings-tabs">
+                <button class="settings-tab active" data-tab="tab-server">Server</button>
+                <button class="settings-tab" data-tab="tab-backend">Backend</button>
+                <button class="settings-tab" data-tab="tab-models">Models</button>
+                <button class="settings-tab" data-tab="tab-runtime">Runtime &amp; GPU</button>
+                <button class="settings-tab" data-tab="tab-theme">Theme</button>
+                <button class="settings-tab" data-tab="tab-data">App Data</button>
+            </div>
             <div class="modal-body">
-                <section class="card">
-                    <h2 class="card-title">App data folder</h2>
-                    <div class="field-row">
-                        <label>Self-contained data root <span class="hint">(settings, backends, styles, themes)</span></label>
-                        <div class="inline-controls">
-                            <input type="text" id="dataDirInput" placeholder="Default app data location" readonly />
-                            <button class="btn btn-sm" id="btnDataDirChange" title="Store all app data in a folder of your choice">Change…</button>
-                            <button class="btn btn-sm" id="btnDataDirReset" title="Revert to the default app data location">Reset</button>
-                            <button class="btn btn-sm" id="btnDataDirOpen" title="Open the app data folder in your file manager">Open</button>
+
+                <div class="settings-tab-panel" id="tab-server">
+                    <section class="card">
+                        <div class="field-row">
+                            <label>Server binary</label>
+                            <div class="inline-controls">
+                                <input type="text" id="serverBinary" placeholder="Not installed" readonly />
+                                <button class="btn btn-sm" id="btnBrowseServer" title="Point to an existing sd-server">Browse</button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="progress-wrap" id="dataMigrateWrap" hidden>
-                        <div class="progress-bar"><div class="progress-fill" id="dataMigrateFill"></div></div>
-                        <span class="progress-text" id="dataMigrateText"></span>
-                    </div>
-                    <p class="field-note">Everything the app stores — settings.json, downloaded/imported backends, styles.json, editable themes, and the default model folder — lives in this one folder. Changing it copies your existing data over and restarts the app.</p>
-                </section>
-                <section class="card">
-                    <h2 class="card-title">Backend Server</h2>
-                    <div class="field-row">
-                        <label>Server binary</label>
-                        <div class="inline-controls">
-                            <input type="text" id="serverBinary" placeholder="Not installed" readonly />
-                            <button class="btn btn-sm" id="btnBrowseServer" title="Point to an existing sd-server">Browse</button>
+                        <div class="field-grid">
+                            <div class="field-row">
+                                <label>Host</label>
+                                <input type="text" id="listenHost" value="127.0.0.1" />
+                            </div>
+                            <div class="field-row">
+                                <label>Port</label>
+                                <input type="number" id="listenPort" value="1234" min="1" max="65535" />
+                            </div>
                         </div>
-                    </div>
-                    <div class="field-row">
-                        <label>Host</label>
-                        <input type="text" id="listenHost" value="127.0.0.1" />
-                    </div>
-                    <div class="field-row">
-                        <label>Port</label>
-                        <input type="number" id="listenPort" value="1234" min="1" max="65535" />
-                    </div>
-                    <div class="field-row">
-                        <label>Extra args</label>
-                        <input type="text" id="extraArgs" placeholder="--threads 8 --diffusion-fa --type f16" />
-                    </div>
-                    <div class="field-row">
-                        <label>Ref-image args</label>
-                        <input type="text" id="refImageArgs" placeholder="preset=qwen_layered (optional; auto-detected from model)" />
-                    </div>
-                    <div class="field-row">
-                        <label class="inline">
-                            <input type="checkbox" id="autoStart" />
-                            Auto-start server on launch
-                        </label>
-                    </div>
-                </section>
-                <section class="card">
-                    <h2 class="card-title">Install Backend</h2>
-                    <div class="backend-buttons">
-                        <button class="btn btn-primary" id="btnImportZip">Import release ZIP</button>
-                        <button class="btn" id="btnDownloadLatest">Download Latest Release</button>
-                    </div>
-                    <button class="btn link-folder-btn" id="btnLinkFolder" title="Use an already-extracted backend folder directly (no copying)">Link extracted backend folder...</button>
-                    <div class="download-area" id="downloadArea" hidden>
-                        <p class="download-label" id="downloadLabel">Select an asset</p>
-                        <div id="assetList" class="asset-list"></div>
-                    </div>
-                    <div class="progress-wrap" id="progressWrap" hidden>
-                        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-                        <span class="progress-text" id="progressText"></span>
-                    </div>
-                </section>
-                <section class="card">
-                    <h2 class="card-title">Runtime &amp; GPU</h2>
-                    <div class="field-row">
-                        <label>Detect GPU, backend variant &amp; missing runtime files</label>
-                        <div class="inline-controls">
-                            <button class="btn btn-sm" id="btnRuntimeCheck" title="Re-scan GPU, backend variant and dependencies">Check</button>
-                            <button class="btn btn-primary btn-sm" id="btnRuntimeFixAll" disabled title="Download and install all missing runtime files">Download missing</button>
+                        <div class="field-row">
+                            <label>Extra args</label>
+                            <input type="text" id="extraArgs" placeholder="--threads 8 --diffusion-fa --type f16" />
                         </div>
-                    </div>
-                    <div id="runtimeInfo" class="runtime-info">
-                        <p class="muted">Run a check to detect your GPU, which stable-diffusion.cpp build is linked, and whether any runtime files are missing.</p>
-                    </div>
-                    <div class="progress-wrap" id="runtimeProgressWrap" hidden>
-                        <div class="progress-bar"><div class="progress-fill" id="runtimeProgressFill"></div></div>
-                        <span class="progress-text" id="runtimeProgressText"></span>
-                    </div>
-                </section>
-                <section class="card">
-                    <h2 class="card-title">Models</h2>
-                    <div class="field-row">
-                        <label>Model folder</label>
-                        <div class="inline-controls">
-                            <input type="text" id="modelDirInput" placeholder="Choose a folder for your models" readonly />
-                            <button class="btn btn-sm" id="btnModelDirBrowse" title="Choose a model folder">Browse</button>
+                        <div class="field-row">
+                            <label>Ref-image args</label>
+                            <input type="text" id="refImageArgs" placeholder="preset=qwen_layered (optional; auto-detected from model)" />
                         </div>
-                    </div>
-                    <div class="model-structure">
-                        <p class="muted">The app detects models from these subfolders:</p>
-                        <div class="structure-paths">
-                            <div><span class="struct-dot" data-sub="models"></span> models/</div>
-                            <div><span class="struct-dot" data-sub="loras"></span> loras/</div>
-                            <div><span class="struct-dot" data-sub="vae"></span> vae/</div>
-                            <div><span class="struct-dot" data-sub="textEncoders"></span> text_encoders/</div>
+                        <div class="field-row">
+                            <label class="inline">
+                                <input type="checkbox" id="autoStart" />
+                                Auto-start server on launch
+                            </label>
                         </div>
-                        <div class="structure-actions">
-                            <button class="btn btn-sm" id="btnModelDirCreate" title="Create the subfolders in the selected folder">Create structure</button>
-                            <button class="btn btn-sm" id="btnModelDirDefault" title="Use the default location and create the structure there">Use default location</button>
-                            <button class="btn btn-sm" id="btnModelDirOpen" title="Open the model folder in your file manager">Open</button>
+                    </section>
+                </div>
+
+                <div class="settings-tab-panel" id="tab-backend" hidden>
+                    <section class="card">
+                        <div class="backend-buttons">
+                            <button class="btn btn-primary" id="btnImportZip">Import release ZIP</button>
+                            <button class="btn" id="btnDownloadLatest">Download Latest</button>
                         </div>
-                    </div>
-                    <div class="field-row">
-                        <label>LoRA folder <span class="hint">(--lora-model-dir)</span></label>
-                        <input type="text" id="loraDirInput" placeholder="loras/ subfolder is auto-detected" readonly />
-                    </div>
-                    <p class="field-note">Pick model / text encoder / VAE / LoRA on the main screen.</p>
-                </section>
-                <section class="card">
-                    <h2 class="card-title">Theme</h2>
-                    <div class="field-row">
-                        <label>Theme <span class="hint">(user-editable CSS)</span></label>
-                        <div class="inline-controls">
-                            <select id="themeSelect"></select>
-                            <button class="btn btn-sm" id="btnThemeOpen" title="Open the themes folder in your file manager">Open themes folder</button>
-                            <button class="btn btn-sm" id="btnThemeReload" title="Re-apply the selected theme file">Reload</button>
+                        <button class="btn link-folder-btn" id="btnLinkFolder" title="Use an already-extracted backend folder directly (no copying)">Link extracted backend folder…</button>
+                        <div class="download-area" id="downloadArea" hidden>
+                            <p class="download-label" id="downloadLabel">Select an asset</p>
+                            <div id="assetList" class="asset-list"></div>
                         </div>
-                    </div>
-                    <p class="field-note">Theme files live in the themes folder as plain CSS. Edit any value, save, then click Reload. New theme files added to that folder appear in the dropdown.</p>
-                </section>
+                        <div class="progress-wrap" id="progressWrap" hidden>
+                            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+                            <span class="progress-text" id="progressText"></span>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="settings-tab-panel" id="tab-models" hidden>
+                    <section class="card">
+                        <div class="field-row">
+                            <label>Model folder</label>
+                            <div class="inline-controls">
+                                <input type="text" id="modelDirInput" placeholder="Choose a folder for your models" readonly />
+                                <button class="btn btn-sm" id="btnModelDirBrowse" title="Choose a model folder">Browse</button>
+                            </div>
+                        </div>
+                        <div class="model-structure">
+                            <p class="muted">The app detects models from these subfolders:</p>
+                            <div class="structure-paths">
+                                <div><span class="struct-dot" data-sub="models"></span> models/</div>
+                                <div><span class="struct-dot" data-sub="loras"></span> loras/</div>
+                                <div><span class="struct-dot" data-sub="vae"></span> vae/</div>
+                                <div><span class="struct-dot" data-sub="textEncoders"></span> text_encoders/</div>
+                            </div>
+                            <div class="structure-actions">
+                                <button class="btn btn-sm" id="btnModelDirCreate" title="Create the subfolders in the selected folder">Create structure</button>
+                                <button class="btn btn-sm" id="btnModelDirDefault" title="Use the default location and create the structure there">Use default</button>
+                                <button class="btn btn-sm" id="btnModelDirOpen" title="Open the model folder in your file manager">Open</button>
+                            </div>
+                        </div>
+                        <div class="field-row">
+                            <label>LoRA folder <span class="hint">(--lora-model-dir)</span></label>
+                            <input type="text" id="loraDirInput" placeholder="loras/ subfolder is auto-detected" readonly />
+                        </div>
+                    </section>
+                </div>
+
+                <div class="settings-tab-panel" id="tab-runtime" hidden>
+                    <section class="card">
+                        <div class="field-row">
+                            <label>Detect GPU, backend variant &amp; missing runtime files</label>
+                            <div class="inline-controls">
+                                <button class="btn btn-sm" id="btnRuntimeCheck" title="Re-scan GPU, backend variant and dependencies">Check</button>
+                                <button class="btn btn-primary btn-sm" id="btnRuntimeFixAll" disabled title="Download and install all missing runtime files">Download missing</button>
+                            </div>
+                        </div>
+                        <div id="runtimeInfo" class="runtime-info">
+                            <p class="muted">Run a check to detect your GPU, which stable-diffusion.cpp build is linked, and whether any runtime files are missing.</p>
+                        </div>
+                        <div class="progress-wrap" id="runtimeProgressWrap" hidden>
+                            <div class="progress-bar"><div class="progress-fill" id="runtimeProgressFill"></div></div>
+                            <span class="progress-text" id="runtimeProgressText"></span>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="settings-tab-panel" id="tab-theme" hidden>
+                    <section class="card">
+                        <div class="field-row">
+                            <label>Theme <span class="hint">(user-editable CSS)</span></label>
+                            <div class="inline-controls">
+                                <select id="themeSelect"></select>
+                                <button class="btn btn-sm" id="btnThemeOpen" title="Open the themes folder in your file manager">Open folder</button>
+                                <button class="btn btn-sm" id="btnThemeReload" title="Re-apply the selected theme file">Reload</button>
+                            </div>
+                        </div>
+                        <p class="field-note">Theme files live in the themes folder as plain CSS. Edit any value, save, then click Reload. New theme files added to that folder appear in the dropdown.</p>
+                    </section>
+                </div>
+
+                <div class="settings-tab-panel" id="tab-data" hidden>
+                    <section class="card">
+                        <div class="field-row">
+                            <label>Self-contained data root <span class="hint">(settings, backends, styles, themes)</span></label>
+                            <div class="inline-controls">
+                                <input type="text" id="dataDirInput" placeholder="Default app data location" readonly />
+                                <button class="btn btn-sm" id="btnDataDirChange" title="Store all app data in a folder of your choice">Change…</button>
+                                <button class="btn btn-sm" id="btnDataDirReset" title="Revert to the default app data location">Reset</button>
+                                <button class="btn btn-sm" id="btnDataDirOpen" title="Open the app data folder in your file manager">Open</button>
+                            </div>
+                        </div>
+                        <div class="progress-wrap" id="dataMigrateWrap" hidden>
+                            <div class="progress-bar"><div class="progress-fill" id="dataMigrateFill"></div></div>
+                            <span class="progress-text" id="dataMigrateText"></span>
+                        </div>
+                        <p class="field-note">Everything the app stores — settings.json, downloaded/imported backends, styles.json, editable themes, and the default model folder — lives in this one folder. Changing it copies your existing data over and restarts the app.</p>
+                    </section>
+                </div>
+
             </div>
         </div>
     </div>

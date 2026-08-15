@@ -21,13 +21,15 @@
     "appId": "com.sdcpp.studio",
     "productName": "SD.cpp Studio",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "build"
     },
     "files": [
       "main.js",
       "preload.js",
       "renderer/**/*",
       "src/**/*",
+      "build/icon.png",
       "package.json"
     ],
     "extraResources": [
@@ -43,7 +45,8 @@
       "target": [
         "nsis",
         "portable"
-      ]
+      ],
+      "icon": "icon.ico"
     },
     "mac": {
       "target": [
