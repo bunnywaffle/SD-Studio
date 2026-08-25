@@ -10,10 +10,10 @@
 <body>
     <header class="app-header">
         <div class="brand">
-            <div class="logo">SD</div>
+            <div class="logo">✦</div>
             <div class="brand-text">
                 <h1>SD.cpp Studio</h1>
-                <span class="subtitle">stable-diffusion.cpp</span>
+                <span class="subtitle">✨ craft images with AI — fast &amp; local</span>
             </div>
         </div>
         <div class="server-status">
@@ -22,24 +22,27 @@
             <span class="server-url" id="serverUrl"></span>
         </div>
         <div class="header-actions">
-            <button class="btn" id="btnSettings" title="Backend &amp; server settings">Settings</button>
-            <button class="btn btn-primary" id="btnStart" title="Start the sd-server backend">Start</button>
-            <button class="btn btn-danger" id="btnStop" title="Stop the sd-server backend" disabled>Stop</button>
+            <button class="btn btn-ghost" id="btnSettings" title="Backend &amp; server settings">⚙ Settings</button>
+            <button class="btn btn-primary" id="btnStart" title="Start the sd-server backend">▶ Start</button>
+            <button class="btn btn-danger" id="btnStop" title="Stop the sd-server backend" disabled>■ Stop</button>
         </div>
     </header>
 
     <div class="alert-banner" id="backendAlert" hidden></div>
 
-    <main class="app-body">
+    <main class="app-body" id="appBody">
         <!-- ============ LEFT: Model + Log ============ -->
-        <aside class="panel left-panel">
-            <section class="card" id="modelsCard">
+        <aside class="panel left-panel" id="leftPanel">
+            <button class="panel-collapse-btn" data-panel="left" title="Collapse panel">‹</button>
+            <div class="panel-collapsed-hint" aria-hidden="true"><span class="hint-icon">◈</span><span>Model</span></div>
+            <section class="card card-accent" id="modelsCard">
                 <div class="card-head">
-                    <h2 class="card-title">Model</h2>
-                    <span class="card-sub">changes need a server restart</span>
+                    <h2 class="card-title"><span class="step-badge">1</span> Model</h2>
+                    <span class="card-sub">restart to apply</span>
                 </div>
+                <p class="card-hint">Pick your base model and helpers. LoRAs stack — mix and match!</p>
                 <div class="card-section">
-                    <div class="section-label">Core</div>
+                    <div class="section-label">✦ Core</div>
                     <div class="field-row">
                         <label>Diffusion model</label>
                         <select id="selModel"></select>
@@ -60,12 +63,12 @@
                     </div>
                 </div>
                 <div class="card-section">
-                    <div class="section-label">LoRA <span class="hint">stack multiple</span></div>
+                    <div class="section-label">🎨 LoRA <span class="hint">stack multiple</span></div>
                     <div class="lora-slots" id="loraSlots"></div>
-                    <button class="btn btn-sm btn-add-lora" id="btnAddLora" title="Add another LoRA slot">+ Add LoRA</button>
+                    <button class="btn btn-sm btn-add-lora" id="btnAddLora" title="Add another LoRA slot">＋ Add LoRA</button>
                 </div>
                 <div class="card-section">
-                    <div class="section-label">Import model file</div>
+                    <div class="section-label">⬇ Import model file</div>
                     <div class="inline-controls">
                         <select id="linkModelType">
                             <option value="diffusion">Diffusion model</option>
@@ -81,7 +84,7 @@
 
             <section class="card collapsible collapsed" id="logCard">
                 <button class="card-toggle" type="button" data-target="logCardBody">
-                    <span class="toggle-arrow">&#9656;</span> Server Log
+                    <span class="toggle-arrow">▸</span> 🖥 Server Log
                 </button>
                 <div class="card-body" id="logCardBody" hidden>
                     <div class="log-box" id="logBox"></div>
@@ -90,22 +93,24 @@
         </aside>
 
         <!-- ============ CENTER: Generate / Edit ============ -->
-        <section class="panel center-panel">
-            <div class="mode-toggle">
-                <button type="button" class="mode-btn active" id="modeGenerate">Generate</button>
-                <button type="button" class="mode-btn" id="modeEdit">Edit image</button>
+        <section class="panel center-panel" id="centerPanel">
+            <button class="panel-collapse-btn center" data-panel="center" title="Collapse panel">—</button>
+            <div class="panel-collapsed-hint" aria-hidden="true"><span class="hint-icon">✦</span><span>Create</span></div>
+            <div class="mode-toggle" role="tablist">
+                <button type="button" class="mode-btn active" id="modeGenerate" role="tab">✦ Generate</button>
+                <button type="button" class="mode-btn" id="modeEdit" role="tab">🖼 Edit image</button>
             </div>
 
             <div class="edit-panel card" id="editPanel" hidden>
                 <div class="edit-header">
-                    <h2 class="card-title">Edit image</h2>
+                    <h2 class="card-title">🖼 Edit image</h2>
                     <div class="edit-actions">
                         <button class="btn btn-sm" id="btnLoadImage">Load image</button>
                         <button class="btn btn-sm" id="btnClearImage" disabled>Clear</button>
                     </div>
                 </div>
                 <div class="edit-preview" id="editPreview">
-                    <p class="muted">No image loaded. Load one, then describe the edit in the prompt below.</p>
+                    <p class="muted">Drop an image here — then describe the edit in the prompt below. ✨</p>
                 </div>
                 <div class="edit-controls">
                     <label>Strength <span class="hint">(ignored by reference-image models like FLUX.2)</span></label>
@@ -116,34 +121,35 @@
                 </div>
             </div>
 
-            <div class="card">
+            <div class="card card-glow">
                 <div class="card-head">
-                    <h2 class="card-title">Prompt</h2>
-                    <button class="btn btn-sm" id="btnClearPrompt" title="Clear prompt and negative prompt">Clear</button>
+                    <h2 class="card-title"><span class="step-badge">2</span> Prompt</h2>
+                    <button class="btn btn-sm btn-ghost" id="btnClearPrompt" title="Clear prompt and negative prompt">↺ Clear</button>
                 </div>
                 <div class="field-row">
-                    <label>Prompt</label>
+                    <label>What do you want to see?</label>
                 </div>
-                <textarea id="prompt" rows="3" placeholder="Describe the image you want to generate..."></textarea>
-                <div class="field-row">
-                    <label>Negative prompt</label>
+                <textarea id="prompt" rows="3" placeholder="A cozy cabin in a snowy forest, warm light in the windows, cinematic…"></textarea>
+                <div class="field-row" style="margin-top:8px">
+                    <label>Negative prompt <span class="hint">— things to avoid</span></label>
                 </div>
-                <textarea id="negativePrompt" rows="2" placeholder="Things to avoid"></textarea>
+                <textarea id="negativePrompt" rows="2" placeholder="blurry, low quality, watermark, text…"></textarea>
                 <div class="styles-row">
                     <div class="styles-head">
-                        <label>Style <span class="hint">(styles.json)</span></label>
+                        <label>Style <span class="hint">from styles.json</span></label>
                         <div class="inline-controls">
-                            <button class="btn btn-sm" id="btnStyleReload" title="Reload styles.json from disk">Reload</button>
-                            <button class="btn btn-sm" id="btnStyleOpen" title="Open styles.json for editing">Edit</button>
+                            <button class="btn btn-sm btn-ghost" id="btnStyleReload" title="Reload styles.json from disk">↻ Reload</button>
+                            <button class="btn btn-sm btn-ghost" id="btnStyleOpen" title="Open styles.json for editing">✎ Edit file</button>
                         </div>
                     </div>
                     <div class="style-picker" id="stylePicker">
                         <button type="button" class="style-picker-btn" id="stylePickerBtn">
+                            <span>🎨</span>
                             <span id="stylePickerLabel">None</span>
-                            <span class="style-picker-chevron">&#9662;</span>
+                            <span class="style-picker-chevron">▾</span>
                         </button>
                         <div class="style-popover" id="stylePopover" hidden>
-                            <input type="text" id="stylePopoverSearch" placeholder="Filter styles…" />
+                            <input type="text" id="stylePopoverSearch" placeholder="🔍 Filter styles…" />
                             <div class="style-list" id="styleList"></div>
                         </div>
                     </div>
@@ -155,8 +161,8 @@
 
             <div class="card">
                 <div class="card-head">
-                    <h2 class="card-title">Generation</h2>
-                    <span class="card-sub">parameters</span>
+                    <h2 class="card-title"><span class="step-badge">3</span> Generation</h2>
+                    <span class="card-sub">tweak to taste</span>
                 </div>
                 <div class="param-grid">
                     <div class="param">
@@ -206,7 +212,7 @@
                         <label>Seed</label>
                         <div class="inline-controls">
                             <input type="number" id="seed" value="-1" />
-                            <button class="btn btn-sm" id="btnRandomSeed" title="Random seed (-1)">&#127922;</button>
+                            <button class="btn btn-sm" id="btnRandomSeed" title="Random seed (-1)">🎲</button>
                         </div>
                     </div>
                     <div class="param">
@@ -223,7 +229,7 @@
                     <div class="field-row size-mode-field">
                         <label>Image size</label>
                         <select id="sizeMode">
-                            <option value="manual">Manual W&#215;H</option>
+                            <option value="manual">Manual W×H</option>
                             <option value="ratio">Aspect ratio</option>
                         </select>
                     </div>
@@ -270,8 +276,8 @@
             </div>
 
             <div class="actions-card">
-                <button class="btn btn-primary btn-generate" id="btnGenerate">Generate</button>
-                <button class="btn btn-danger" id="btnCancel" disabled>Cancel</button>
+                <button class="btn btn-generate" id="btnGenerate">✦ Generate</button>
+                <button class="btn btn-ghost" id="btnCancel" disabled>Cancel</button>
                 <span class="gen-status" id="genStatus"></span>
             </div>
             <div class="progress-card card" id="genProgressCard" hidden>
@@ -281,17 +287,23 @@
         </section>
 
         <!-- ============ RIGHT: Gallery ============ -->
-        <aside class="panel right-panel">
-            <div class="card grow">
+        <aside class="panel right-panel" id="rightPanel">
+            <button class="panel-collapse-btn" data-panel="right" title="Collapse panel">›</button>
+            <div class="panel-collapsed-hint" aria-hidden="true"><span class="hint-icon">▞</span><span>Gallery</span></div>
+            <div class="card grow card-gallery">
                 <div class="lora-header">
-                    <h2 class="card-title">Gallery <span class="gallery-count" id="galleryCount"></span></h2>
-                    <div>
-                        <button class="btn btn-sm" id="btnClearGallery" title="Clear gallery">Clear</button>
-                        <button class="btn btn-sm" id="btnOpenGalleryDir" title="Open gallery folder">Open</button>
+                    <h2 class="card-title">✨ Gallery <span class="gallery-count" id="galleryCount"></span></h2>
+                    <div class="gallery-actions">
+                        <button class="btn btn-sm btn-ghost" id="btnClearGallery" title="Clear gallery">Clear</button>
+                        <button class="btn btn-sm btn-ghost" id="btnOpenGalleryDir" title="Open gallery folder">Open</button>
                     </div>
                 </div>
                 <div class="gallery" id="gallery">
-                    <p class="muted">Generated images will appear here.</p>
+                    <div class="gallery-empty">
+                        <div class="gallery-empty-art">🎨</div>
+                        <p class="gallery-empty-title">No images yet</p>
+                        <p class="muted">Your creations will appear here. Try a prompt and hit Generate!</p>
+                    </div>
                 </div>
             </div>
         </aside>
@@ -301,10 +313,10 @@
     <div class="modal-overlay" id="settingsModal" hidden>
         <div class="modal">
             <div class="modal-header">
-                <h2 class="card-title">Settings</h2>
+                <h2 class="card-title">⚙ Settings</h2>
                 <div class="modal-header-actions">
                     <button class="btn btn-primary btn-sm" id="btnSaveSettings">Save</button>
-                    <button class="btn btn-sm" id="btnSettingsClose">Close</button>
+                    <button class="btn btn-sm btn-ghost" id="btnSettingsClose">Close</button>
                 </div>
             </div>
             <div class="settings-tabs">
@@ -426,8 +438,8 @@
                             <label>Theme <span class="hint">(user-editable CSS)</span></label>
                             <div class="inline-controls">
                                 <select id="themeSelect"></select>
-                                <button class="btn btn-sm" id="btnThemeOpen" title="Open the themes folder in your file manager">Open folder</button>
-                                <button class="btn btn-sm" id="btnThemeReload" title="Re-apply the selected theme file">Reload</button>
+                                <button class="btn btn-sm btn-ghost" id="btnThemeOpen" title="Open the themes folder in your file manager">Open folder</button>
+                                <button class="btn btn-sm btn-ghost" id="btnThemeReload" title="Re-apply the selected theme file">Reload</button>
                             </div>
                         </div>
                         <p class="field-note">Theme files live in the themes folder as plain CSS. Edit any value, save, then click Reload. New theme files added to that folder appear in the dropdown.</p>
@@ -440,9 +452,9 @@
                             <label>Self-contained data root <span class="hint">(settings, backends, styles, themes)</span></label>
                             <div class="inline-controls">
                                 <input type="text" id="dataDirInput" placeholder="Default app data location" readonly />
-                                <button class="btn btn-sm" id="btnDataDirChange" title="Store all app data in a folder of your choice">Change…</button>
-                                <button class="btn btn-sm" id="btnDataDirReset" title="Revert to the default app data location">Reset</button>
-                                <button class="btn btn-sm" id="btnDataDirOpen" title="Open the app data folder in your file manager">Open</button>
+                                <button class="btn btn-sm btn-ghost" id="btnDataDirChange" title="Store all app data in a folder of your choice">Change…</button>
+                                <button class="btn btn-sm btn-ghost" id="btnDataDirReset" title="Revert to the default app data location">Reset</button>
+                                <button class="btn btn-sm btn-ghost" id="btnDataDirOpen" title="Open the app data folder in your file manager">Open</button>
                             </div>
                         </div>
                         <div class="progress-wrap" id="dataMigrateWrap" hidden>

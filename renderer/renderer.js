@@ -1352,6 +1352,53 @@ function bindEvents() {
         });
     });
 
+    // Collapsible panels — every panel can collapse to a slim rail
+    function updatePanelLayout() {
+        const l = document.getElementById('leftPanel')?.classList.contains('is-collapsed');
+        const c = document.getElementById('centerPanel')?.classList.contains('is-collapsed');
+        const r = document.getElementById('rightPanel')?.classList.contains('is-collapsed');
+        const appBody = document.getElementById('appBody');
+        if (!appBody) return;
+        const lw = l ? '48px' : '320px';
+        const cw = c ? '48px' : '1fr';
+        const rw = r ? '48px' : '320px';
+        appBody.style.gridTemplateColumns = `${lw} ${cw} ${rw}`;
+        appBody.classList.toggle('has-collapsed', !!(l || c || r));
+    }
+    document.querySelectorAll('.panel-collapse-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const panelId = btn.dataset.panel === 'left' ? 'leftPanel' : btn.dataset.panel === 'right' ? 'rightPanel' : 'centerPanel';
+            const panel = document.getElementById(panelId);
+            if (!panel) return;
+            const collapsed = panel.classList.toggle('is-collapsed');
+            // flip chevron
+            if (btn.dataset.panel === 'left') btn.textContent = collapsed ? '›' : '‹';
+            else if (btn.dataset.panel === 'right') btn.textContent = collapsed ? '‹' : '›';
+            else if (btn.dataset.panel === 'center') btn.textContent = collapsed ? '⧉' : '—';
+            btn.title = collapsed ? 'Expand panel' : 'Collapse panel';
+            updatePanelLayout();
+        });
+    });
+    // clicking the collapsed rail itself also expands
+    ['leftPanel', 'centerPanel', 'rightPanel'].forEach((id) => {
+        const panel = document.getElementById(id);
+        if (!panel) return;
+        panel.addEventListener('click', (e) => {
+            if (!panel.classList.contains('is-collapsed')) return;
+            // ignore clicks that bubbled from the button (already handled)
+            if (e.target.closest('.panel-collapse-btn')) return;
+            const btn = panel.querySelector('.panel-collapse-btn');
+            if (!btn) return;
+            panel.classList.remove('is-collapsed');
+            if (btn.dataset.panel === 'left') btn.textContent = '‹';
+            else if (btn.dataset.panel === 'right') btn.textContent = '›';
+            else btn.textContent = '—';
+            btn.title = 'Collapse panel';
+            updatePanelLayout();
+        });
+    });
+
     // Settings modal
     el.btnSettings.addEventListener('click', () => { el.settingsModal.hidden = false; });
     el.btnSettingsClose.addEventListener('click', () => { el.settingsModal.hidden = true; });
