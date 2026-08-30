@@ -749,16 +749,25 @@ async function loadImage() {
 }
 
 // ---------- Generation ----------
+function loraNameForServer(fullPath) {
+    const base = String(fullPath || '').split(/[\\/]/).pop() || '';
+    const dot = base.lastIndexOf('.');
+    return dot > 0 ? base.slice(0, dot) : base;
+}
+
 function buildNativePayload() {
     const eff = getEffectivePrompt();
     if (!eff.prompt) {
         setGenStatus('Enter a prompt first.', 'error');
         return null;
     }
-    const lora = getActiveLoraSlots().map((l) => ({
-        path: l.path,
-        multiplier: l.multiplier,
-    }));
+    const lora = getActiveLoraSlots()
+        .map((l) => ({
+            path: loraNameForServer(l.path),
+            multiplier: l.multiplier,
+            is_high_noise: false,
+        }))
+        .filter((e) => e.path);
     const size = computeEffectiveSize();
     const payload = {
         prompt: eff.prompt,
