@@ -38,7 +38,8 @@ class SettingsStore {
             sampler: 'euler_a',
             scheduler: 'discrete',
             outputFormat: 'png',
-            theme: 'neutral'
+            theme: 'neutral',
+            loraApplyMode: 'auto'
         };
         this.load();
     }

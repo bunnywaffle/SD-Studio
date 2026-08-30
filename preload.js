@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('sdcpp', {
     setModelsDir: (dir) => ipcRenderer.invoke('models:setDir', dir),
     createModelsStructure: (dir) => ipcRenderer.invoke('models:createStructure', dir),
     linkModelFile: (opts) => ipcRenderer.invoke('models:linkFile', opts),
+    deleteModelFile: (filePath) => ipcRenderer.invoke('models:deleteFile', filePath),
 
     // backend
     getBackendState: () => ipcRenderer.invoke('backend:state'),

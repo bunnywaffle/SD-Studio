@@ -470,6 +470,47 @@ ipcMain.handle('models:linkFile', async (e, opts) => {
     return { ok: true, canceled: false, ...link, scan: models.scan(dir) };
 });
 
+ipcMain.handle('models:deleteFile', async (e, filePath) => {
+    const dir = settings.get('modelDir') || '';
+    if (!filePath) return { ok: false, error: 'No file specified.' };
+    if (!dir) return { ok: false, error: 'No models folder configured.' };
+    const resolvedFile = path.resolve(filePath);
+    const resolvedDir = path.resolve(dir);
+    if (!resolvedFile.startsWith(resolvedDir + path.sep) && resolvedFile !== resolvedDir) {
+        return { ok: false, error: 'Refusing to delete file outside the models folder.' };
+    }
+    let stat;
+    try { stat = fs.lstatSync(resolvedFile); } catch { return { ok: false, error: 'File not found.' }; }
+    if (!stat.isFile() && !stat.isSymbolicLink()) return { ok: false, error: 'Only files can be deleted.' };
+    try {
+        // Prefer trash (recoverable)
+        let trashed = false;
+        try {
+            await shell.trashItem(resolvedFile);
+            trashed = true;
+        } catch {}
+        if (!trashed && fs.existsSync(resolvedFile)) {
+            const res = models.deleteModelFile(resolvedFile, dir);
+            if (!res.ok) return res;
+        }
+        // Clear any setting that pointed to this file
+        const patch = {};
+        if (settings.get('modelPath') === filePath || settings.get('modelPath') === resolvedFile) patch.modelPath = '';
+        if (settings.get('diffusionModelPath') === filePath || settings.get('diffusionModelPath') === resolvedFile) patch.diffusionModelPath = '';
+        if (settings.get('vaePath') === filePath || settings.get('vaePath') === resolvedFile) patch.vaePath = '';
+        if (settings.get('textEncoderPath') === filePath || settings.get('textEncoderPath') === resolvedFile) patch.textEncoderPath = '';
+        if (settings.get('visionEncoderPath') === filePath || settings.get('visionEncoderPath') === resolvedFile) patch.visionEncoderPath = '';
+        if (Object.keys(patch).length) settings.setAll(patch);
+        // Also purge from loraSlots
+        const slots = settings.get('loraSlots') || [];
+        const filtered = slots.filter((s) => s.path !== filePath && s.path !== resolvedFile);
+        if (filtered.length !== slots.length) settings.set('loraSlots', filtered);
+        return { ok: true, scan: models.scan(dir) };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+});
+
 // --- IPC: style templates ------------------------------------------------
 
 ipcMain.handle('styles:get', () => {

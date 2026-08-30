@@ -282,6 +282,10 @@ class BackendManager {
         if (loraDir) {
             args.push('--lora-model-dir', loraDir);
         }
+        const loraMode = this.settings.get('loraApplyMode') || 'auto';
+        if (loraMode && loraMode !== 'auto') {
+            args.push('--lora-apply-mode', loraMode);
+        }
         args.push('--listen-ip', host);
         args.push('--listen-port', String(port));
 

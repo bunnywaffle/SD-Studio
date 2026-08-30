@@ -67,6 +67,7 @@ const el = {
     selVisionEncoder: document.getElementById('selVisionEncoder'),
     selVae: document.getElementById('selVae'),
     loraDirInput: document.getElementById('loraDirInput'),
+    loraApplyMode: document.getElementById('loraApplyMode'),
     linkModelType: document.getElementById('linkModelType'),
     btnLinkModelFile: document.getElementById('btnLinkModelFile'),
 
@@ -120,6 +121,10 @@ const el = {
     gallery: document.getElementById('gallery'),
     btnClearGallery: document.getElementById('btnClearGallery'),
     btnOpenGalleryDir: document.getElementById('btnOpenGalleryDir'),
+
+    modelManagerModal: document.getElementById('modelManagerModal'),
+    btnOpenModelManager: document.getElementById('btnOpenModelManager'),
+    btnManagerClose: document.getElementById('btnManagerClose'),
 };
 
 // ---------- State ----------
@@ -136,6 +141,7 @@ let themesAvailable = [];
 let modelsState = null;
 let editMode = false;
 let initImage = null; // { name, dataUrl, width, height }
+let payloadForLastJob = null;
 
 // ---------- Utils ----------
 function fmtBytes(bytes) {
@@ -851,24 +857,49 @@ async function generate() {
     }
     const payload = buildNativePayload();
     if (!payload) return;
+    payloadForLastJob = payload;
 
+    // Pre-validate LoRAs: ensure each is found in lora dir (OS-agnostic name check)
+    if (payload.lora && payload.lora.length) {
+        const knownNames = new Set((modelsState && modelsState.loras || []).map((f) => loraNameForServer(f.path).toLowerCase()));
+        const missing = payload.lora.filter((l) => !knownNames.has(String(l.path || '').toLowerCase()));
+        if (missing.length) {
+            const names = missing.map((m) => m.path).join(', ');
+            setGenStatus(`LoRA not found in --lora-model-dir (${el.loraDirInput.value || 'not set'}): ${names}. Check Settings → Models → LoRA folder and Server Log.`, 'error');
+            // still try submitting — server will give authoritative error
+        }
+        console.log('[SD Studio] Submitting with LoRAs:', payload.lora);
+    } else {
+        console.log('[SD Studio] Submitting payload (no LoRA):', { ...payload, lora: [] });
+    }
+    console.log('[SD Studio] Full payload:', JSON.stringify(payload).slice(0, 4000));
+
+    const genStart = Date.now();
     setBusy(true);
     setGenStatus('Submitting job...', 'busy');
 
     try {
         const res = await api.submitJob(payload);
         if (!res.ok) {
-            setGenStatus(`Submission failed: ${res.error}`, 'error');
+            const serverHint = (backendState.logs || []).slice(-40).filter((l) => /lora|invalid|can not find|must be a model name/i.test(l.message)).map((l) => l.message.trim()).join('\n');
+            const hint = serverHint ? `\nServer log:\n${serverHint}` : '\nTip: Check Server Log card for details (search "lora"). LoRA path must be just the name without folder/extension and file must exist in the LoRA folder.';
+            setGenStatus(`Submission failed: ${res.error}${hint}`, 'error');
+            console.error('[SD Studio] Submission failed payload:', payload, 'logs:', serverHint);
             hideProgress();
             setBusy(false);
             return;
         }
         activeJob = res.job;
+        activeJob._genStart = genStart;
         showProgress(true, `Job ${res.job.id} queued...`);
         setGenStatus(`Job ${res.job.id} queued...`, 'busy');
         pollTimer = setInterval(pollJob, 1200);
     } catch (err) {
-        setGenStatus(`Error: ${err.message}`, 'error');
+        const serverHint = (backendState.logs || []).slice(-40).filter((l) => /lora|invalid|can not find|must be a model name/i.test(l.message)).map((l) => l.message.trim()).join('\n');
+        const msg = err.message || String(err);
+        const hint = serverHint ? `\nServer log:\n${serverHint}` : '';
+        setGenStatus(`Error: ${msg}${hint}`, 'error');
+        console.error('[SD Studio] Submit exception:', err, 'payload:', payload);
         hideProgress();
         setBusy(false);
     }
@@ -917,8 +948,25 @@ async function pollJob() {
 }
 
 function handleCompletion(job) {
+    const start = activeJob && activeJob._genStart ? activeJob._genStart : null;
+    const elapsed = start ? ((Date.now() - start) / 1000).toFixed(1) : null;
     setBusy(false);
-    setGenStatus('Done!', 'done');
+    if (elapsed) {
+        setGenStatus(`Done! in ${elapsed}s`, 'done');
+        console.log(`[SD Studio] Generation completed in ${elapsed}s`, job);
+        // Hint if unusually slow with LoRA and auto mode
+        const loraCount = payloadForLastJob && payloadForLastJob.lora ? payloadForLastJob.lora.length : 0;
+        if (parseFloat(elapsed) > 60 && loraCount > 0) {
+            const mode = settings.loraApplyMode || 'auto';
+            if (mode === 'auto' || mode === 'at_runtime') {
+                console.log('[SD Studio] Slow LoRA generation — try Settings → Models → LoRA apply mode: immediately (requires restart)');
+            }
+        } else if (parseFloat(elapsed) > 90 && loraCount === 0) {
+            console.log('[SD Studio] Slow generation — check Settings → Runtime & GPU → Check to confirm GPU is detected and backend is CUDA. Also try lowering steps or enabling --diffusion-fa in Settings → Server → Extra args.');
+        }
+    } else {
+        setGenStatus('Done!', 'done');
+    }
     const result = job.result || {};
     const images = result.images || [];
     if (result.b64_json) {
@@ -997,6 +1045,102 @@ function renderModels() {
     const loraCount = modelsState.loras ? modelsState.loras.length : 0;
     el.loraDirInput.placeholder = loraCount ? `${loraCount} LoRA(s) detected` : 'No LoRAs in loras/ subfolder yet';
     renderLoraSlots();
+    // keep manager in sync if open
+    if (el.modelManagerModal && !el.modelManagerModal.hidden) renderModelManager();
+}
+
+function openModelManager() {
+    if (!modelsState) refreshModels().then(() => { renderModelManager(); el.modelManagerModal.hidden = false; });
+    else { renderModelManager(); el.modelManagerModal.hidden = false; }
+}
+function closeModelManager() { if (el.modelManagerModal) el.modelManagerModal.hidden = true; }
+
+function renderModelManager() {
+    if (!modelsState) return;
+    const tabs = {
+        'mgr-models': { key: 'models', type: 'diffusion', label: 'Diffusion models', empty: 'No diffusion models yet. Use Add to link a file.' },
+        'mgr-loras': { key: 'loras', type: 'lora', label: 'LoRAs', empty: 'No LoRAs yet.' },
+        'mgr-vae': { key: 'vae', type: 'vae', label: 'VAE', empty: 'No VAE files.' },
+        'mgr-textEncoders': { key: 'textEncoders', type: 'textEncoder', label: 'Text encoders', empty: 'No text encoders.' },
+        'mgr-visionEncoders': { key: 'visionEncoders', type: 'visionEncoder', label: 'Vision encoders', empty: 'No vision encoders.' },
+    };
+    for (const [panelId, cfg] of Object.entries(tabs)) {
+        const panel = document.getElementById(panelId);
+        if (!panel) continue;
+        const files = modelsState[cfg.key] || [];
+        panel.innerHTML = '';
+        const toolbar = document.createElement('div');
+        toolbar.className = 'manager-toolbar';
+        const count = document.createElement('span');
+        count.className = 'manager-count';
+        count.textContent = `${files.length} file${files.length !== 1 ? 's' : ''}`;
+        const addBtn = document.createElement('button');
+        addBtn.className = 'btn btn-sm btn-primary';
+        addBtn.textContent = `＋ Add ${cfg.label}`;
+        addBtn.addEventListener('click', async () => {
+            const res = await api.linkModelFile({ type: cfg.type });
+            if (!res || res.canceled) return;
+            if (!res.ok) { setGenStatus(`Add failed: ${res.error}`, 'error'); return; }
+            modelsState = res.scan;
+            renderModels();
+            renderModelManager();
+            setGenStatus(`Added ${res.name}`, 'done');
+        });
+        toolbar.appendChild(count);
+        toolbar.appendChild(addBtn);
+        panel.appendChild(toolbar);
+        if (!files.length) {
+            const empty = document.createElement('div');
+            empty.className = 'manager-empty';
+            empty.textContent = cfg.empty;
+            panel.appendChild(empty);
+            continue;
+        }
+        const list = document.createElement('div');
+        list.className = 'manager-file-list';
+        for (const f of files) {
+            const row = document.createElement('div');
+            row.className = 'manager-file-item';
+            const info = document.createElement('div');
+            info.className = 'manager-file-info';
+            const name = document.createElement('div');
+            name.className = 'manager-file-name';
+            name.textContent = f.name + (f.empty ? '  ⚠ empty' : '');
+            name.title = f.path;
+            const meta = document.createElement('div');
+            meta.className = 'manager-file-meta';
+            meta.textContent = `${fmtBytes(f.size)}  •  ${f.path}`;
+            meta.title = f.path;
+            info.appendChild(name);
+            info.appendChild(meta);
+            const actions = document.createElement('div');
+            actions.className = 'manager-file-actions';
+            const revealBtn = document.createElement('button');
+            revealBtn.className = 'btn btn-sm btn-ghost';
+            revealBtn.textContent = 'Show';
+            revealBtn.title = 'Show in file manager';
+            revealBtn.addEventListener('click', () => api.openPath(f.path));
+            const delBtn = document.createElement('button');
+            delBtn.className = 'btn btn-sm btn-danger';
+            delBtn.textContent = 'Delete';
+            delBtn.addEventListener('click', async () => {
+                if (!confirm(`Move "${f.name}" to Recycle Bin?\n\n${f.path}`)) return;
+                delBtn.disabled = true;
+                const res = await api.deleteModelFile(f.path);
+                if (!res.ok) { setGenStatus(`Delete failed: ${res.error}`, 'error'); delBtn.disabled = false; return; }
+                modelsState = res.scan;
+                renderModels();
+                renderModelManager();
+                setGenStatus(`Deleted ${f.name}`, 'done');
+            });
+            actions.appendChild(revealBtn);
+            actions.appendChild(delBtn);
+            row.appendChild(info);
+            row.appendChild(actions);
+            list.appendChild(row);
+        }
+        panel.appendChild(list);
+    }
 }
 
 function fillModelSelect(select, files, currentPath, noneLabel) {
@@ -1296,6 +1440,7 @@ function collectSettingsFromUi() {
         sampler: el.sampler.value,
         scheduler: el.scheduler.value,
         outputFormat: el.outputFormat.value,
+        loraApplyMode: el.loraApplyMode ? el.loraApplyMode.value : 'auto',
     };
 }
 
@@ -1327,6 +1472,7 @@ function applySettingsToUi() {
     el.sampler.value = settings.sampler || 'euler_a';
     el.scheduler.value = settings.scheduler || 'discrete';
     el.outputFormat.value = settings.outputFormat || 'png';
+    if (el.loraApplyMode) el.loraApplyMode.value = settings.loraApplyMode || 'auto';
     if (Array.isArray(settings.loraSlots)) {
         loraSlots = settings.loraSlots.map((s) => ({
             name: s.name || '',
@@ -1429,10 +1575,23 @@ function bindEvents() {
     // Settings modal
     el.btnSettings.addEventListener('click', () => { el.settingsModal.hidden = false; });
     el.btnSettingsClose.addEventListener('click', () => { el.settingsModal.hidden = true; });
-    document.querySelectorAll('.settings-tab').forEach((tab) => {
+    document.querySelectorAll('#settingsModal .settings-tab').forEach((tab) => {
         tab.addEventListener('click', () => {
-            document.querySelectorAll('.settings-tab').forEach((t) => t.classList.remove('active'));
-            document.querySelectorAll('.settings-tab-panel').forEach((p) => { p.hidden = true; });
+            document.querySelectorAll('#settingsModal .settings-tab').forEach((t) => t.classList.remove('active'));
+            document.querySelectorAll('#settingsModal .settings-tab-panel').forEach((p) => { p.hidden = true; });
+            tab.classList.add('active');
+            const panel = document.getElementById(tab.dataset.tab);
+            if (panel) panel.hidden = false;
+        });
+    });
+    // Model Manager modal
+    if (el.btnOpenModelManager) el.btnOpenModelManager.addEventListener('click', openModelManager);
+    if (el.btnManagerClose) el.btnManagerClose.addEventListener('click', closeModelManager);
+    if (el.modelManagerModal) el.modelManagerModal.addEventListener('click', (e) => { if (e.target === el.modelManagerModal) closeModelManager(); });
+    document.querySelectorAll('#managerTabs .settings-tab').forEach((tab) => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('#managerTabs .settings-tab').forEach((t) => t.classList.remove('active'));
+            document.querySelectorAll('#managerBody .settings-tab-panel').forEach((p) => { p.hidden = true; });
             tab.classList.add('active');
             const panel = document.getElementById(tab.dataset.tab);
             if (panel) panel.hidden = false;
@@ -1475,6 +1634,11 @@ function bindEvents() {
     el.selTextEncoder.addEventListener('change', onTextEncoderSelect);
     el.selVisionEncoder.addEventListener('change', onVisionEncoderSelect);
     el.btnLinkModelFile.addEventListener('click', linkModelFile);
+    if (el.loraApplyMode) el.loraApplyMode.addEventListener('change', async () => {
+        await api.setSettings({ loraApplyMode: el.loraApplyMode.value });
+        settings = await api.getSettings();
+        setGenStatus(`LoRA mode: ${el.loraApplyMode.value} — restart server to apply.`, 'done');
+    });
 
     el.btnBrowseServer.addEventListener('click', async () => {
         const p = await api.pickFile({ title: 'Select sd-server executable', filters: [{ name: 'Server executable', extensions: ['exe', '*'] }] });

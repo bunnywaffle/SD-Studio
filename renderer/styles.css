@@ -1642,6 +1642,80 @@ textarea::placeholder { color: var(--text-faint); }
 /* grid adapts when panels collapse — keep smooth */
 .app-body.has-collapsed { gap: 8px; }
 
+/* ============ Model Manager ============ */
+.modal-large { width: 720px; }
+
+.manager-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.manager-count {
+    font-size: 11px;
+    color: var(--text-faint);
+    background: rgba(255,255,255,0.06);
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+}
+
+.manager-file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.manager-file-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.manager-file-item:hover { border-color: rgba(124,92,255,0.3); background: rgba(124,92,255,0.05); }
+
+.manager-file-info { flex: 1; min-width: 0; }
+
+.manager-file-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.manager-file-meta {
+    font-size: 11px;
+    color: var(--text-faint);
+    font-family: Consolas, monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.manager-file-actions {
+    display: flex;
+    gap: 6px;
+    flex: 0 0 auto;
+}
+
+.manager-empty {
+    text-align: center;
+    padding: 28px 16px;
+    color: var(--text-dim);
+    font-size: 13px;
+    background: rgba(255,255,255,0.03);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+}
+
 /* ============ Responsive ============ */
 @media (max-width: 1300px) {
     .app-body {

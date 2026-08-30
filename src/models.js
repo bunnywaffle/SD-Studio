@@ -122,6 +122,31 @@ function linkModelFile(filePath, type, modelsDir) {
     return { ok: true, type, sub: cfg.sub, linkPath, name: path.basename(linkPath) };
 }
 
+function deleteModelFile(filePath, modelsDir) {
+    if (!filePath || !modelsDir) return { ok: false, error: 'Missing file or models folder.' };
+    const resolvedFile = path.resolve(filePath);
+    const resolvedDir = path.resolve(modelsDir);
+    if (!resolvedFile.startsWith(resolvedDir + path.sep) && resolvedFile !== resolvedDir) {
+        return { ok: false, error: 'Refusing to delete file outside the models folder.' };
+    }
+    let stat;
+    try {
+        stat = fs.lstatSync(resolvedFile);
+    } catch {
+        return { ok: false, error: 'File not found.' };
+    }
+    // Only allow files/symlinks, not directories
+    if (!stat.isFile() && !stat.isSymbolicLink()) {
+        return { ok: false, error: 'Only files can be deleted.' };
+    }
+    try {
+        fs.unlinkSync(resolvedFile);
+    } catch (e) {
+        return { ok: false, error: e.message };
+    }
+    return { ok: true, deleted: resolvedFile };
+}
+
 function suggestDefaultDir() {
     // The default model folder lives inside the self-contained app data dir,
     // so everything the app stores stays under one root.
@@ -153,4 +178,4 @@ function scan(dir) {
     };
 }
 
-module.exports = { SUBDIRS, EXTENSIONS, createStructure, listFiles, scan, linkModelFile, modelLaunchMode, suggestDefaultDir };
+module.exports = { SUBDIRS, EXTENSIONS, createStructure, listFiles, scan, linkModelFile, deleteModelFile, modelLaunchMode, suggestDefaultDir };

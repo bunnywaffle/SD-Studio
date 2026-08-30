@@ -38,7 +38,10 @@
             <section class="card card-accent" id="modelsCard">
                 <div class="card-head">
                     <h2 class="card-title"><span class="step-badge">1</span> Model</h2>
-                    <span class="card-sub">restart to apply</span>
+                    <div style="display:flex;gap:6px;align-items:center">
+                        <span class="card-sub">restart to apply</span>
+                        <button class="btn btn-sm btn-ghost" id="btnOpenModelManager" title="Add or delete any model file">◈ Manage</button>
+                    </div>
                 </div>
                 <p class="card-hint">Pick your base model and helpers. LoRAs stack — mix and match!</p>
                 <div class="card-section">
@@ -410,6 +413,15 @@
                             <label>LoRA folder <span class="hint">(--lora-model-dir)</span></label>
                             <input type="text" id="loraDirInput" placeholder="loras/ subfolder is auto-detected" readonly />
                         </div>
+                        <div class="field-row">
+                            <label>LoRA apply mode <span class="hint">(--lora-apply-mode) — speed vs compatibility</span></label>
+                            <select id="loraApplyMode">
+                                <option value="auto">auto (recommended)</option>
+                                <option value="immediately">immediately — faster, uses more VRAM, may fail on quantized models</option>
+                                <option value="at_runtime">at_runtime — slower, more compatible with quantized weights</option>
+                            </select>
+                            <p class="field-note">auto picks immediately for full-precision models and at_runtime for quantized models. If generation is unusually slow with LoRA, try immediately. If LoRA fails to apply, try at_runtime. Requires server restart.</p>
+                        </div>
                     </section>
                 </div>
 
@@ -465,6 +477,30 @@
                     </section>
                 </div>
 
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ Model Manager modal ============ -->
+    <div class="modal-overlay" id="modelManagerModal" hidden>
+        <div class="modal modal-large">
+            <div class="modal-header">
+                <h2 class="card-title">◈ Model Manager <span class="hint" style="font-weight:400">— add or delete any file (moves to Recycle Bin)</span></h2>
+                <button class="btn btn-sm btn-ghost" id="btnManagerClose">Close</button>
+            </div>
+            <div class="settings-tabs" id="managerTabs">
+                <button class="settings-tab active" data-tab="mgr-models">Diffusion</button>
+                <button class="settings-tab" data-tab="mgr-loras">LoRA</button>
+                <button class="settings-tab" data-tab="mgr-vae">VAE</button>
+                <button class="settings-tab" data-tab="mgr-textEncoders">Text Encoder</button>
+                <button class="settings-tab" data-tab="mgr-visionEncoders">Vision</button>
+            </div>
+            <div class="modal-body" id="managerBody">
+                <div class="settings-tab-panel" id="mgr-models"></div>
+                <div class="settings-tab-panel" id="mgr-loras" hidden></div>
+                <div class="settings-tab-panel" id="mgr-vae" hidden></div>
+                <div class="settings-tab-panel" id="mgr-textEncoders" hidden></div>
+                <div class="settings-tab-panel" id="mgr-visionEncoders" hidden></div>
             </div>
         </div>
     </div>
