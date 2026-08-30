@@ -673,14 +673,30 @@ function renderLoraSlots() {
         strength.appendChild(slider);
         strength.appendChild(sVal);
 
+        const highNoise = document.createElement('label');
+        highNoise.className = 'lora-high-noise';
+        highNoise.title = 'Needed for Flux/Qwen high-noise LoRAs';
+        const hnCheck = document.createElement('input');
+        hnCheck.type = 'checkbox';
+        hnCheck.checked = !!slot.is_high_noise;
+        hnCheck.addEventListener('change', () => {
+            slot.is_high_noise = hnCheck.checked;
+            saveLoraSlots();
+        });
+        const hnLabel = document.createElement('span');
+        hnLabel.textContent = 'High-noise';
+        highNoise.appendChild(hnCheck);
+        highNoise.appendChild(hnLabel);
+
         row.appendChild(top);
         row.appendChild(strength);
+        row.appendChild(highNoise);
         el.loraSlots.appendChild(row);
     });
 }
 
 function addLoraSlot() {
-    loraSlots.push({ name: '', path: '', multiplier: 0.8 });
+    loraSlots.push({ name: '', path: '', multiplier: 0.8, is_high_noise: false });
     saveLoraSlots();
     renderLoraSlots();
 }
@@ -690,6 +706,7 @@ function saveLoraSlots() {
         name: s.name || '',
         path: s.path || '',
         multiplier: Math.min(2, Math.max(0, parseFloat(s.multiplier) || 0)),
+        is_high_noise: !!s.is_high_noise,
     }));
     api.setSettings({ loraSlots: cleaned });
 }
@@ -765,7 +782,7 @@ function buildNativePayload() {
         .map((l) => ({
             path: loraNameForServer(l.path),
             multiplier: l.multiplier,
-            is_high_noise: false,
+            is_high_noise: !!l.is_high_noise,
         }))
         .filter((e) => e.path);
     const size = computeEffectiveSize();
@@ -1089,7 +1106,7 @@ async function linkModelFile() {
     else if (type === 'textEncoder') patch.textEncoderPath = linkPath;
     else if (type === 'visionEncoder') patch.visionEncoderPath = linkPath;
     else if (type === 'lora' && res.linkPath && !loraSlots.some((s) => s.path === res.linkPath)) {
-        loraSlots.push({ path: res.linkPath, name: res.name || '' });
+        loraSlots.push({ path: res.linkPath, name: res.name || '', multiplier: 0.8, is_high_noise: false });
         saveLoraSlots();
     }
     if (Object.keys(patch).length) {
@@ -1315,10 +1332,11 @@ function applySettingsToUi() {
             name: s.name || '',
             path: s.path || '',
             multiplier: typeof s.multiplier === 'number' ? s.multiplier : 0.8,
+            is_high_noise: !!s.is_high_noise,
         }));
-        if (!loraSlots.length) loraSlots = [{ name: '', path: '', multiplier: 0.8 }];
+        if (!loraSlots.length) loraSlots = [{ name: '', path: '', multiplier: 0.8, is_high_noise: false }];
     } else {
-        loraSlots = [{ name: '', path: '', multiplier: 0.8 }];
+        loraSlots = [{ name: '', path: '', multiplier: 0.8, is_high_noise: false }];
     }
     applySizeMode();
 }

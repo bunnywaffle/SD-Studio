@@ -609,6 +609,22 @@ textarea::placeholder { color: var(--text-faint); }
     border-radius: 6px;
 }
 
+.lora-high-noise {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-dim);
+    cursor: pointer;
+    user-select: none;
+}
+
+.lora-high-noise input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 13px;
+    height: 13px;
+}
+
 /* ============ Log ============ */
 .log-box {
     flex: 1;
