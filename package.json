@@ -30,6 +30,7 @@
       "renderer/**/*",
       "src/**/*",
       "build/icon.png",
+      "styles.json",
       "package.json"
     ],
     "extraResources": [
