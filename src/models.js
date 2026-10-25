@@ -16,7 +16,7 @@ const EXTENSIONS = {
     models: ['safetensors', 'gguf', 'ckpt', 'pth', 'pt', 'bin'],
     loras: ['safetensors', 'gguf', 'bin', 'pt', 'sft'],
     vae: ['safetensors', 'pt', 'ckpt', 'pth', 'bin', 'gguf'],
-    textEncoders: ['safetensors', 'gguf', 'bin', 'pt', 'ckpt', 'pth'],
+    textEncoders: ['safetensors', 'gguf', 'bin', 'pt', 'ckpt', 'pth', 'json'],
 };
 
 function createStructure(dir) {
@@ -48,6 +48,7 @@ const LINK_TYPES = {
     vae: { sub: 'vae', exts: EXTENSIONS.vae, label: 'VAE' },
     textEncoder: { sub: 'text_encoders', exts: EXTENSIONS.textEncoders, label: 'Text encoder' },
     visionEncoder: { sub: 'text_encoders', exts: EXTENSIONS.textEncoders, label: 'Vision encoder' },
+    tokenizer: { sub: 'text_encoders', exts: ['json'], label: 'Tokenizer' },
 };
 
 function listFiles(dir, exts, modeFn) {
@@ -168,6 +169,7 @@ function scan(dir) {
     // fall back to listing all text encoders when none match so the picker is still usable.
     const visionFiles = result.textEncoders.filter((f) => VISION_ENCODER_RE.test(f.name));
     result.visionEncoders = visionFiles.length > 0 ? visionFiles : result.textEncoders;
+    result.tokenizers = result.textEncoders.filter((f) => f.name.toLowerCase().endsWith('.json') || f.name.toLowerCase().includes('tokenizer'));
     return {
         dir: dir || '',
         exists,

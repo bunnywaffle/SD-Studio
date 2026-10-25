@@ -253,26 +253,102 @@ class BackendManager {
         const args = [];
         const modelPath = this.settings.get('modelPath');
         const diffusionModel = this.settings.get('diffusionModelPath');
+        const loaderMode = this.settings.get('modelLoaderMode') || 'auto';
         const vaePath = this.settings.get('vaePath');
         const tePath = this.settings.get('textEncoderPath');
+        const clipL = this.settings.get('clipLPath');
+        const clipG = this.settings.get('clipGPath');
+        const t5xxl = this.settings.get('t5xxlPath');
+        const tokenizer = this.settings.get('tokenizerPath');
         const visionEncoder = this.settings.get('visionEncoderPath');
         const refImageArgs = (this.settings.get('refImageArgs') || '').trim();
         const loraDir = this.settings.get('loraDir');
         const host = this.settings.get('listenHost') || '127.0.0.1';
         const port = this.settings.get('listenPort') || 1234;
 
-        if (modelPath) {
-            args.push('-m', modelPath);
+        const effectiveModel = modelPath || diffusionModel;
+        if (loaderMode === 'unified' && effectiveModel) {
+            args.push('-m', effectiveModel);
+        } else if (loaderMode === 'diffusion' && effectiveModel) {
+            args.push('--diffusion-model', effectiveModel);
+        } else {
+            // Auto mode
+            if (modelPath) {
+                args.push('-m', modelPath);
+            }
+            if (diffusionModel) {
+                args.push('--diffusion-model', diffusionModel);
+            }
         }
-        if (diffusionModel) {
-            args.push('--diffusion-model', diffusionModel);
-        }
+
         if (vaePath) {
             args.push('--vae', vaePath);
         }
-        if (tePath) {
-            args.push('--llm', tePath);
+
+        // Auxiliary text encoders
+        if (clipL) {
+            args.push('--clip_l', clipL);
         }
+        if (clipG) {
+            args.push('--clip_g', clipG);
+        }
+        if (t5xxl) {
+            args.push('--t5xxl', t5xxl);
+        }
+
+        // Primary text encoder smart routing if not already explicitly assigned
+        if (tePath) {
+            const teBase = path.basename(tePath).toLowerCase();
+            if (/clip[-_]?l/i.test(teBase)) {
+                if (!clipL) args.push('--clip_l', tePath);
+            } else if (/clip[-_]?g/i.test(teBase)) {
+                if (!clipG) args.push('--clip_g', tePath);
+            } else if (/t5/i.test(teBase)) {
+                if (!t5xxl) args.push('--t5xxl', tePath);
+            } else if (/tokenizer/i.test(teBase) || teBase.endsWith('.json')) {
+                if (!tokenizer) args.push('--tokenizer', tePath);
+            } else {
+                args.push('--llm', tePath);
+            }
+        }
+
+        const extra = (this.settings.get('extraArgs') || '').trim();
+        const extraTokens = extra ? extra.split(/\s+/).filter(Boolean) : [];
+
+        let tokenizerPathToUse = tokenizer;
+        const filteredExtraTokens = [];
+        for (let i = 0; i < extraTokens.length; i++) {
+            if (extraTokens[i] === '--tokenizer' && i + 1 < extraTokens.length) {
+                if (!tokenizerPathToUse) tokenizerPathToUse = extraTokens[i + 1];
+                i++;
+            } else {
+                filteredExtraTokens.push(extraTokens[i]);
+            }
+        }
+
+        const effectiveModelName = path.basename(effectiveModel || '').toLowerCase();
+        const isMossModel = /moss/i.test(effectiveModelName);
+
+        if (!tokenizerPathToUse && isMossModel) {
+            const modelsDir = this.settings.get('modelDir');
+            if (modelsDir) {
+                const autoTok = path.join(modelsDir, 'text_encoders', 'tokenizer.json');
+                if (fs.existsSync(autoTok)) {
+                    tokenizerPathToUse = autoTok;
+                }
+            }
+        }
+
+        if (tokenizerPathToUse) {
+            if (!path.isAbsolute(tokenizerPathToUse)) {
+                const modelsDir = this.settings.get('modelDir');
+                if (modelsDir && fs.existsSync(path.join(modelsDir, 'text_encoders', tokenizerPathToUse))) {
+                    tokenizerPathToUse = path.join(modelsDir, 'text_encoders', tokenizerPathToUse);
+                }
+            }
+            args.push('--tokenizer', tokenizerPathToUse);
+        }
+
         if (visionEncoder) {
             args.push('--llm_vision', visionEncoder);
         }
@@ -289,9 +365,8 @@ class BackendManager {
         args.push('--listen-ip', host);
         args.push('--listen-port', String(port));
 
-        const extra = (this.settings.get('extraArgs') || '').trim();
-        if (extra) {
-            args.push(...extra.split(/\s+/).filter(Boolean));
+        if (extraTokens.length > 0) {
+            args.push(...extraTokens);
         }
         return args;
     }
@@ -332,11 +407,19 @@ class BackendManager {
         const args = this.buildLaunchArgs();
         const url = this.getServerUrl();
 
+        const logFile = path.join(path.dirname(serverPath), 'sd-server.log');
+        try {
+            fs.appendFileSync(logFile, `\n\n=== Launch ${new Date().toISOString()} ===\n${serverPath} ${args.join(' ')}\n`);
+        } catch {}
+
         this.log('info', `Launching: ${serverPath} ${args.join(' ')}`);
         this.status = 'starting';
         this.emit({ type: 'state', ...this.getState() });
 
         return new Promise((resolve, reject) => {
+            let settled = false;
+            let lastErrorMsg = '';
+
             const proc = spawn(serverPath, args, {
                 cwd: path.dirname(serverPath),
                 env: { ...process.env },
@@ -346,19 +429,40 @@ class BackendManager {
             this.process = proc;
             this.runningUrl = url;
 
-            proc.stdout.on('data', (d) => this.log('server', d.toString().trimEnd()));
-            proc.stderr.on('data', (d) => this.log('server', d.toString().trimEnd()));
+            const handleOutput = (d) => {
+                const line = d.toString().trimEnd();
+                try {
+                    fs.appendFileSync(logFile, line + '\n');
+                } catch {}
+                this.log('server', line);
+                if (line.includes('[E] ') || line.toLowerCase().includes('error:') || line.toLowerCase().includes('failed to')) {
+                    const match = line.match(/\[E\]\s*(.*)/);
+                    lastErrorMsg = match ? match[1] : line;
+                }
+            };
+
+            proc.stdout.on('data', handleOutput);
+            proc.stderr.on('data', handleOutput);
 
             proc.on('error', (err) => {
+                try {
+                    fs.appendFileSync(logFile, `[PROC ERROR] ${err.message}\n`);
+                } catch {}
                 this.log('error', `Failed to start server: ${err.message}`);
                 this.status = 'error';
                 this.process = null;
                 this.runningUrl = null;
                 this.emit({ type: 'state', ...this.getState() });
-                reject(err);
+                if (!settled) {
+                    settled = true;
+                    reject(err);
+                }
             });
 
             proc.on('exit', (code, signal) => {
+                try {
+                    fs.appendFileSync(logFile, `[EXIT] code=${code}, signal=${signal}\n`);
+                } catch {}
                 this.log('info', `Server process exited (code=${code}, signal=${signal})`);
                 this.process = null;
                 this.runningUrl = null;
@@ -366,9 +470,19 @@ class BackendManager {
                     this.status = code === 0 ? 'stopped' : 'error';
                 }
                 this.emit({ type: 'state', ...this.getState() });
+                if (!settled) {
+                    settled = true;
+                    const errText = lastErrorMsg || `Server exited with code ${code}`;
+                    reject(new Error(errText));
+                }
             });
 
-            resolve({ url });
+            setTimeout(() => {
+                if (!settled) {
+                    settled = true;
+                    resolve({ url });
+                }
+            }, 800);
         });
     }
 

@@ -65,6 +65,8 @@ const el = {
     selModel: document.getElementById('selModel'),
     selTextEncoder: document.getElementById('selTextEncoder'),
     selVisionEncoder: document.getElementById('selVisionEncoder'),
+    selModelLoaderMode: document.getElementById('selModelLoaderMode'),
+    selTokenizer: document.getElementById('selTokenizer'),
     selVae: document.getElementById('selVae'),
     loraDirInput: document.getElementById('loraDirInput'),
     loraApplyMode: document.getElementById('loraApplyMode'),
@@ -182,23 +184,43 @@ function describeBackendError(state) {
     if (/unsupported dtype/.test(msgs)) {
         return 'The model file uses a quantization dtype this backend build does not support (e.g. I8). Try a different model variant (plain .gguf / .safetensors, not an int4/convrot quant), or update to a newer stable-diffusion.cpp release.';
     }
+    if (/failed to load tokenizer/i.test(msgs)) {
+        return 'Failed to load tokenizer file. Verify the path exists and check the Tokenizer dropdown in Models.';
+    }
+    if (/requires the official.*tokenizer|pass --tokenizer/i.test(msgs)) {
+        return 'This model requires an official tokenizer.json. Place tokenizer.json into your models/text_encoders folder or select it in the Tokenizer dropdown.';
+    }
+    if (/has wrong shape in model metadata|not in model metadata|model metadata validation failed/i.test(msgs)) {
+        const shapeMatch = msgs.match(/tensor '([^']+)' has wrong shape in model metadata: got \[([^\]]+)\], expected \[([^\]]+)\]/);
+        if (shapeMatch) {
+            return `Text encoder dimension mismatch on '${shapeMatch[1]}': got [${shapeMatch[2]}], expected [${shapeMatch[3]}]. Check that your text encoder matches the base model architecture.`;
+        }
+        return 'The selected text encoder does not match this model architecture. Check that you selected the matching text encoder (or clear it if the model has it built in).';
+    }
+    if (/VAE not found|failed to load vae/i.test(msgs)) {
+        return 'VAE missing or failed to load. Select a compatible VAE model in the VAE dropdown.';
+    }
+    if (/failed to load diffusion model/i.test(msgs)) {
+        return 'Failed to load diffusion model. It may be corrupt or require a different loader mode (toggle -m vs --diffusion-model).';
+    }
     if (/get sd version from file failed/.test(msgs)) {
-        return 'The diffusion model file could not be identified. It is either not a GGUF made for stable-diffusion.cpp, or it needs to be selected in Settings.';
+        return 'The diffusion model file could not be identified. If it is a full checkpoint, set Loader flag to Full checkpoint (-m).';
     }
     if (/no diffusion model selected/.test(msgs)) {
-        return 'No diffusion model is selected. Open Settings, pick a model from the "Diffusion model" list, then start the server again.';
+        return 'No diffusion model is selected. Pick a model from the "Diffusion model" list, then start the server again.';
     }
     if (/no sd-server found/.test(msgs)) {
         return 'The backend (sd-server) is not installed or linked yet. Open Settings to install or import a stable-diffusion.cpp release first.';
     }
-    if (/model metadata validation failed|has wrong shape in model metadata/.test(msgs)) {
-        return 'The text encoder file does not match the model. It may be an FP8-scale or vision file. Settings pick a plain text-encoder file (e.g. Qwen3) and retry.';
-    }
     if (/failed to open|no such file|file not found|can't open|cannot open/.test(msgs)) {
         return 'A required model file could not be opened. The path may be missing or wrong. Check the Models folder in Settings.';
     }
-    if (/cuda|cublas|cudnn/i.test(msgs)) {
-        return 'The backend had an error with your GPU (CUDA). Check that this build supports your GPU, or try a CPU build.';
+    if (/(?:CUDA|CUBLAS|CUDNN)\s*(?:error|out of memory|failed|invalid|exception)|cudaError/i.test(msgs)) {
+        return 'The backend had an error with your GPU (CUDA). Check that this build supports your GPU, or try a CPU / Vulkan build.';
+    }
+    const lastErr = msgs.split('\n').reverse().find(l => /\[E\]|error:/i.test(l));
+    if (lastErr) {
+        return lastErr.replace(/^\[E\]\s*/, '').trim();
     }
     return 'The server could not start. Open the Server Log card below for the technical details.';
 }
@@ -1040,6 +1062,9 @@ function renderModels() {
     fillModelSelect(el.selVae, modelsState.vae, settings.vaePath || '', 'None');
     fillModelSelect(el.selTextEncoder, modelsState.textEncoders, settings.textEncoderPath || '', 'None');
     fillModelSelect(el.selVisionEncoder, modelsState.visionEncoders, settings.visionEncoderPath || '', 'None');
+    if (el.selTokenizer) {
+        fillModelSelect(el.selTokenizer, modelsState.tokenizers || [], settings.tokenizerPath || '', 'Auto-detect');
+    }
 
     el.loraDirInput.value = settings.loraDir || (modelsState.subDirs && modelsState.subDirs.loras) || '';
     const loraCount = modelsState.loras ? modelsState.loras.length : 0;
@@ -1184,6 +1209,17 @@ async function onTextEncoderSelect() {
     await api.setSettings({ textEncoderPath: el.selTextEncoder.value || '' });
     settings = await api.getSettings();
     renderModels();
+}
+
+async function onTokenizerSelect() {
+    await api.setSettings({ tokenizerPath: el.selTokenizer ? el.selTokenizer.value : '' });
+    settings = await api.getSettings();
+    renderModels();
+}
+
+async function onLoaderModeSelect() {
+    await api.setSettings({ modelLoaderMode: el.selModelLoaderMode ? el.selModelLoaderMode.value : 'auto' });
+    settings = await api.getSettings();
 }
 
 async function onVisionEncoderSelect() {
@@ -1473,6 +1509,8 @@ function applySettingsToUi() {
     el.scheduler.value = settings.scheduler || 'discrete';
     el.outputFormat.value = settings.outputFormat || 'png';
     if (el.loraApplyMode) el.loraApplyMode.value = settings.loraApplyMode || 'auto';
+    if (el.selModelLoaderMode) el.selModelLoaderMode.value = settings.modelLoaderMode || 'auto';
+    if (el.selTokenizer) el.selTokenizer.value = settings.tokenizerPath || '';
     if (Array.isArray(settings.loraSlots)) {
         loraSlots = settings.loraSlots.map((s) => ({
             name: s.name || '',
@@ -1633,6 +1671,8 @@ function bindEvents() {
     el.selVae.addEventListener('change', onVaeSelect);
     el.selTextEncoder.addEventListener('change', onTextEncoderSelect);
     el.selVisionEncoder.addEventListener('change', onVisionEncoderSelect);
+    if (el.selTokenizer) el.selTokenizer.addEventListener('change', onTokenizerSelect);
+    if (el.selModelLoaderMode) el.selModelLoaderMode.addEventListener('change', onLoaderModeSelect);
     el.btnLinkModelFile.addEventListener('click', linkModelFile);
     if (el.loraApplyMode) el.loraApplyMode.addEventListener('change', async () => {
         await api.setSettings({ loraApplyMode: el.loraApplyMode.value });

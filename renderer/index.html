@@ -50,6 +50,14 @@
                         <label>Diffusion model</label>
                         <select id="selModel"></select>
                     </div>
+                    <div class="field-row">
+                        <label>Loader flag <span class="hint">(launch with -m or --diffusion-model)</span></label>
+                        <select id="selModelLoaderMode">
+                            <option value="auto">Auto (Smart detect)</option>
+                            <option value="diffusion">Standalone diffusion model (--diffusion-model)</option>
+                            <option value="unified">Full checkpoint model (-m)</option>
+                        </select>
+                    </div>
                     <div class="field-grid">
                         <div class="field-row">
                             <label>Text encoder</label>
@@ -62,6 +70,10 @@
                         <div class="field-row">
                             <label>Vision encoder</label>
                             <select id="selVisionEncoder"></select>
+                        </div>
+                        <div class="field-row">
+                            <label>Tokenizer <span class="hint">(optional)</span></label>
+                            <select id="selTokenizer"></select>
                         </div>
                     </div>
                 </div>
@@ -79,6 +91,7 @@
                             <option value="vae">VAE</option>
                             <option value="textEncoder">Text encoder</option>
                             <option value="visionEncoder">Vision encoder</option>
+                            <option value="tokenizer">Tokenizer (.json)</option>
                         </select>
                         <button class="btn btn-sm" id="btnLinkModelFile" title="Pick a file anywhere on disk and link it into the models folder (symlink)">Link…</button>
                     </div>

@@ -92,6 +92,9 @@ function sendToRenderer(channel, payload) {
 }
 
 backend.onUpdate((patch) => {
+    if (patch.type === 'state' && (patch.status === 'error' || patch.status === 'stopped')) {
+        stopReadinessPoll();
+    }
     sendToRenderer('backend:update', patch);
 });
 
@@ -377,8 +380,8 @@ app.whenReady().then(() => {
     // Auto start server if configured
     const backendDir = settings.get('backendDir');
     if (backendDir && findServerExecutable(backendDir).length > 0 && settings.get('autoStartServer')) {
-        setTimeout(() => {
-            backend.start().catch((err) => backend.log('error', err.message));
+        setTimeout(async () => {
+            const res = await backend.start(); if (res && res.url) { api.setBaseUrl(res.url); startReadinessPoll(); }
         }, 1500);
     }
 });
@@ -436,11 +439,12 @@ ipcMain.handle('models:createStructure', (e, dir) => {
 ipcMain.handle('models:checkFiles', (e, paths) => {
     const results = [];
     for (const p of (paths || []).filter(Boolean)) {
+        const name = path.basename(p);
         try {
             const st = fs.statSync(p);
-            results.push({ path: p, exists: true, size: st.size, empty: st.size === 0 });
+            results.push({ path: p, name, exists: true, size: st.size, empty: st.size === 0 });
         } catch {
-            results.push({ path: p, exists: false, size: 0, empty: true });
+            results.push({ path: p, name, exists: false, size: 0, empty: true, missing: true });
         }
     }
     return results;
