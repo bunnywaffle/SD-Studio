@@ -108,15 +108,19 @@ function linkModelFile(filePath, type, modelsDir) {
         linkPath = path.join(dir, `${stem}_${i}${path.extname(base)}`);
     }
 
+    let linked = false;
     try {
-        fs.symlinkSync(filePath, linkPath, 'file');
-    } catch (e) {
+        fs.linkSync(filePath, linkPath);
+        linked = true;
+    } catch {}
+    if (!linked) {
         try {
-            fs.linkSync(filePath, linkPath);
-        } catch (e2) {
+            fs.symlinkSync(filePath, linkPath, 'file');
+            linked = true;
+        } catch (e) {
             return {
                 ok: false,
-                error: `Could not link ${base}: ${e2.message}. On Windows, enable Developer Mode (Settings → Privacy & Security → For developers) or pick a file on the same drive as the models folder.`,
+                error: `Could not link ${base}: ${e.message}. On Windows, enable Developer Mode or pick a file on the same drive as the models folder.`,
             };
         }
     }

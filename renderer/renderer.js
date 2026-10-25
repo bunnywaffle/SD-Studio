@@ -796,8 +796,17 @@ async function loadImage() {
 // ---------- Generation ----------
 function loraNameForServer(fullPath) {
     const base = String(fullPath || '').split(/[\\/]/).pop() || '';
-    const dot = base.lastIndexOf('.');
-    return dot > 0 ? base.slice(0, dot) : base;
+    if (capabilities && Array.isArray(capabilities.loras)) {
+        const found = capabilities.loras.find((c) =>
+            c.path === base ||
+            c.display_path === base ||
+            c.name === base ||
+            c.path === fullPath ||
+            c.name === base.replace(/\.[^.]+$/, '')
+        );
+        if (found && found.path) return found.path;
+    }
+    return base;
 }
 
 function buildNativePayload() {
