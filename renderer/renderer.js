@@ -127,6 +127,44 @@ const el = {
     modelManagerModal: document.getElementById('modelManagerModal'),
     btnOpenModelManager: document.getElementById('btnOpenModelManager'),
     btnManagerClose: document.getElementById('btnManagerClose'),
+
+    // Performance & VAE Tiling
+    perfFlashAttn: document.getElementById('perfFlashAttn'),
+    perfConvDirect: document.getElementById('perfConvDirect'),
+    perfBatchedCfg: document.getElementById('perfBatchedCfg'),
+    perfCacheMode: document.getElementById('perfCacheMode'),
+    perfVaeTiling: document.getElementById('perfVaeTiling'),
+    perfVaeTileSize: document.getElementById('perfVaeTileSize'),
+    perfVaeTileOverlap: document.getElementById('perfVaeTileOverlap'),
+    perfTemporalTiling: document.getElementById('perfTemporalTiling'),
+    perfOffloadToCpu: document.getElementById('perfOffloadToCpu'),
+    perfParamsBackend: document.getElementById('perfParamsBackend'),
+    perfMaxVram: document.getElementById('perfMaxVram'),
+    perfCacheOption: document.getElementById('perfCacheOption'),
+    perfAutoFit: document.getElementById('perfAutoFit'),
+    perfThreads: document.getElementById('perfThreads'),
+    perfSageAttn: document.getElementById('perfSageAttn'),
+    perfDisablePrefetch: document.getElementById('perfDisablePrefetch'),
+    perfDisableSegmentedCompute: document.getElementById('perfDisableSegmentedCompute'),
+    genVaeTiling: document.getElementById('genVaeTiling'),
+
+    // Gallery view modes (Grid vs Big Picture)
+    btnGalleryGrid: document.getElementById('btnGalleryGrid'),
+    btnGalleryBig: document.getElementById('btnGalleryBig'),
+    galleryBigView: document.getElementById('galleryBigView'),
+    galleryBigEmpty: document.getElementById('galleryBigEmpty'),
+    galleryBigContent: document.getElementById('galleryBigContent'),
+    galleryBigImg: document.getElementById('galleryBigImg'),
+    galleryBigPrompt: document.getElementById('galleryBigPrompt'),
+    galleryBigTags: document.getElementById('galleryBigTags'),
+    galleryBigIndex: document.getElementById('galleryBigIndex'),
+    btnBigPrev: document.getElementById('btnBigPrev'),
+    btnBigNext: document.getElementById('btnBigNext'),
+    btnBigSave: document.getElementById('btnBigSave'),
+    btnBigCopyPrompt: document.getElementById('btnBigCopyPrompt'),
+    btnBigUseSeed: document.getElementById('btnBigUseSeed'),
+    btnBigOpenPreview: document.getElementById('btnBigOpenPreview'),
+    btnBigBackToGrid: document.getElementById('btnBigBackToGrid'),
 };
 
 // ---------- State ----------
@@ -138,6 +176,8 @@ let activeJob = null;
 let pollTimer = null;
 let galleryItems = [];
 let galleryDir = null;
+let galleryViewMode = 'grid'; // 'grid' | 'big'
+let currentBigIndex = 0;
 let styles = [];
 let themesAvailable = [];
 let modelsState = null;
@@ -538,7 +578,12 @@ async function addToGallery(imageB64, meta) {
     const id = Date.now() + Math.random().toString(36).slice(2, 7);
     const item = { id, imageB64, meta, savedPath: null };
     galleryItems.push(item);
-    renderGallery();
+    currentBigIndex = galleryItems.length - 1;
+    if (galleryViewMode === 'big') {
+        renderGalleryBig();
+    } else {
+        renderGallery();
+    }
 }
 
 function base64ToUint8(b64) {
@@ -546,6 +591,119 @@ function base64ToUint8(b64) {
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     return bytes;
+}
+
+function setGalleryViewMode(mode) {
+    galleryViewMode = mode === 'big' ? 'big' : 'grid';
+    if (el.btnGalleryGrid) el.btnGalleryGrid.classList.toggle('active', galleryViewMode === 'grid');
+    if (el.btnGalleryBig) el.btnGalleryBig.classList.toggle('active', galleryViewMode === 'big');
+    if (el.gallery) el.gallery.hidden = (galleryViewMode === 'big');
+    if (el.galleryBigView) el.galleryBigView.hidden = (galleryViewMode !== 'big');
+
+    settings.galleryViewMode = galleryViewMode;
+    api.setSettings({ galleryViewMode }).catch(() => {});
+
+    if (galleryViewMode === 'big') {
+        renderGalleryBig();
+    } else {
+        renderGallery();
+    }
+}
+
+function renderGalleryBig() {
+    const total = galleryItems.length;
+    const countEl = document.getElementById('galleryCount');
+    if (countEl) countEl.textContent = total ? `(${total})` : '';
+
+    if (!total) {
+        if (el.galleryBigEmpty) el.galleryBigEmpty.hidden = false;
+        if (el.galleryBigContent) el.galleryBigContent.hidden = true;
+        return;
+    }
+    if (el.galleryBigEmpty) el.galleryBigEmpty.hidden = true;
+    if (el.galleryBigContent) el.galleryBigContent.hidden = false;
+
+    if (currentBigIndex < 0 || currentBigIndex >= total) {
+        currentBigIndex = total - 1;
+    }
+
+    const item = galleryItems[currentBigIndex];
+    if (!item) return;
+
+    if (el.galleryBigImg) {
+        el.galleryBigImg.src = `data:image/png;base64,${item.imageB64}`;
+    }
+    if (el.galleryBigIndex) {
+        el.galleryBigIndex.textContent = `${currentBigIndex + 1} / ${total}`;
+    }
+    if (el.btnBigPrev) el.btnBigPrev.disabled = (currentBigIndex <= 0);
+    if (el.btnBigNext) el.btnBigNext.disabled = (currentBigIndex >= total - 1);
+
+    const meta = item.meta || {};
+    if (el.galleryBigPrompt) {
+        el.galleryBigPrompt.textContent = meta.prompt || 'Generated image';
+        el.galleryBigPrompt.title = meta.prompt || '';
+    }
+
+    if (el.galleryBigTags) {
+        el.galleryBigTags.innerHTML = '';
+        const tags = [];
+        if (meta.width && meta.height) tags.push(`${meta.width}×${meta.height}`);
+        if (meta.steps) tags.push(`${meta.steps} steps`);
+        if (meta.cfgScale) tags.push(`CFG ${meta.cfgScale}`);
+        if (meta.sampler) tags.push(meta.sampler);
+        if (meta.scheduler) tags.push(meta.scheduler);
+        if (meta.seed != null && meta.seed !== -1) tags.push(`Seed: ${meta.seed}`);
+        if (meta.vaeTiling) tags.push(`VAE Tiling`);
+        if (meta.elapsed) tags.push(`${meta.elapsed}s`);
+
+        for (const t of tags) {
+            const span = document.createElement('span');
+            span.className = 'gallery-tag';
+            span.textContent = t;
+            el.galleryBigTags.appendChild(span);
+        }
+    }
+
+    if (el.btnBigSave) {
+        el.btnBigSave.textContent = item.savedPath ? '✓ Saved' : '💾 Save Image';
+        el.btnBigSave.disabled = !!item.savedPath;
+        el.btnBigSave.onclick = async () => {
+            if (item.savedPath) return;
+            const fp = await api.saveImage({ defaultName: 'generated.png' });
+            if (fp) {
+                const buf = base64ToUint8(item.imageB64);
+                await api.writeFile(fp, buf);
+                item.savedPath = fp;
+                renderGalleryBig();
+                renderGallery();
+            }
+        };
+    }
+
+    if (el.btnBigCopyPrompt) {
+        el.btnBigCopyPrompt.onclick = () => {
+            if (meta.prompt) {
+                navigator.clipboard.writeText(meta.prompt);
+                const orig = el.btnBigCopyPrompt.textContent;
+                el.btnBigCopyPrompt.textContent = '✓ Copied';
+                setTimeout(() => { el.btnBigCopyPrompt.textContent = orig; }, 1500);
+            }
+        };
+    }
+
+    if (el.btnBigUseSeed) {
+        el.btnBigUseSeed.onclick = () => {
+            if (meta.seed != null && meta.seed >= 0) {
+                el.seed.value = meta.seed;
+                setGenStatus(`Seed set to ${meta.seed}`, 'done');
+            }
+        };
+    }
+
+    if (el.btnBigOpenPreview) {
+        el.btnBigOpenPreview.onclick = () => openPreview(item);
+    }
 }
 
 function renderGallery() {
@@ -562,20 +720,43 @@ function renderGallery() {
         const img = document.createElement('img');
         img.src = `data:image/png;base64,${item.imageB64}`;
         img.alt = 'generated';
+        img.style.cursor = 'pointer';
+        img.title = 'Click to view in Big Picture';
+        img.addEventListener('click', () => {
+            currentBigIndex = galleryItems.indexOf(item);
+            setGalleryViewMode('big');
+        });
+
         const overlay = document.createElement('div');
         overlay.className = 'gallery-overlay';
         const btnView = document.createElement('button');
         btnView.className = 'btn btn-sm';
         btnView.textContent = 'View';
-        btnView.addEventListener('click', () => openPreview(item));
+        btnView.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openPreview(item);
+        });
+        const btnBig = document.createElement('button');
+        btnBig.className = 'btn btn-sm btn-ghost';
+        btnBig.textContent = '🖼 Big';
+        btnBig.title = 'Open in Big Picture';
+        btnBig.addEventListener('click', (e) => {
+            e.stopPropagation();
+            currentBigIndex = galleryItems.indexOf(item);
+            setGalleryViewMode('big');
+        });
+
         overlay.appendChild(btnView);
+        overlay.appendChild(btnBig);
         div.appendChild(img);
         div.appendChild(overlay);
+
         const btnSave = document.createElement('button');
         btnSave.className = 'save-badge';
         btnSave.textContent = item.savedPath ? 'Saved' : 'Save';
         btnSave.disabled = !!item.savedPath;
-        btnSave.addEventListener('click', async () => {
+        btnSave.addEventListener('click', async (e) => {
+            e.stopPropagation();
             if (item.savedPath) return;
             const fp = await api.saveImage({ defaultName: 'generated.png' });
             if (fp) {
@@ -583,6 +764,7 @@ function renderGallery() {
                 await api.writeFile(fp, buf);
                 item.savedPath = fp;
                 renderGallery();
+                if (galleryViewMode === 'big') renderGalleryBig();
             }
         });
         div.appendChild(btnSave);
@@ -850,6 +1032,28 @@ function buildNativePayload() {
         payload.width = clampSize(snapTo8(initImage.width));
         payload.height = clampSize(snapTo8(initImage.height));
     }
+
+    // Performance optimizations from docs/performance.md
+    const useVaeTiling = (el.genVaeTiling && el.genVaeTiling.checked) || !!settings.vaeTiling;
+    if (useVaeTiling) {
+        const tileSize = parseInt(settings.vaeTileSize, 10) || 256;
+        const overlap = parseFloat(settings.vaeTileOverlap) != null ? parseFloat(settings.vaeTileOverlap) : 0.5;
+        payload.vae_tiling_params = {
+            enabled: true,
+            tile_size_w: tileSize,
+            tile_size_h: tileSize,
+            target_overlap: overlap,
+            temporal_tiling: !!settings.temporalTiling
+        };
+    }
+
+    if (settings.cacheMode && settings.cacheMode !== 'disabled') {
+        payload.cache_mode = settings.cacheMode;
+    }
+    if (settings.cacheOption && String(settings.cacheOption).trim()) {
+        payload.cache_option = String(settings.cacheOption).trim();
+    }
+
     return payload;
 }
 
@@ -874,6 +1078,7 @@ function buildSdapiPayload() {
         sampler_name: el.sampler.value,
         scheduler: el.scheduler.value,
         lora,
+        vae_tiling: (el.genVaeTiling && el.genVaeTiling.checked) || !!settings.vaeTiling,
     };
 }
 
@@ -998,13 +1203,28 @@ function handleCompletion(job) {
     } else {
         setGenStatus('Done!', 'done');
     }
+    const meta = {
+        prompt: (payloadForLastJob && payloadForLastJob.prompt) || (job && job.prompt) || '',
+        negative_prompt: (payloadForLastJob && payloadForLastJob.negative_prompt) || '',
+        width: (payloadForLastJob && payloadForLastJob.width) || (job && job.width) || 512,
+        height: (payloadForLastJob && payloadForLastJob.height) || (job && job.height) || 512,
+        steps: (payloadForLastJob && payloadForLastJob.sample_params && payloadForLastJob.sample_params.sample_steps) || 20,
+        cfgScale: (payloadForLastJob && payloadForLastJob.sample_params && payloadForLastJob.sample_params.guidance && payloadForLastJob.sample_params.guidance.txt_cfg) || 7,
+        sampler: (payloadForLastJob && payloadForLastJob.sample_params && payloadForLastJob.sample_params.sample_method) || 'euler_a',
+        scheduler: (payloadForLastJob && payloadForLastJob.sample_params && payloadForLastJob.sample_params.scheduler) || 'discrete',
+        seed: (payloadForLastJob && payloadForLastJob.seed) != null ? payloadForLastJob.seed : -1,
+        vaeTiling: !!(payloadForLastJob && payloadForLastJob.vae_tiling_params && payloadForLastJob.vae_tiling_params.enabled),
+        elapsed: elapsed,
+        job: job
+    };
+
     const result = job.result || {};
     const images = result.images || [];
     if (result.b64_json) {
-        addToGallery(result.b64_json, job);
+        addToGallery(result.b64_json, meta);
     }
     for (const img of images) {
-        if (img.b64_json) addToGallery(img.b64_json, job);
+        if (img.b64_json) addToGallery(img.b64_json, meta);
     }
     if (!images.length && !result.b64_json) {
         setGenStatus('Job completed but returned no image.', 'error');
@@ -1486,6 +1706,26 @@ function collectSettingsFromUi() {
         scheduler: el.scheduler.value,
         outputFormat: el.outputFormat.value,
         loraApplyMode: el.loraApplyMode ? el.loraApplyMode.value : 'auto',
+
+        // Performance & Memory settings
+        flashAttn: el.perfFlashAttn ? el.perfFlashAttn.value : (settings.flashAttn || 'auto'),
+        convDirect: el.perfConvDirect ? el.perfConvDirect.value : (settings.convDirect || 'auto'),
+        batchedCfg: el.perfBatchedCfg ? el.perfBatchedCfg.value === 'true' : (settings.batchedCfg !== false),
+        cacheMode: el.perfCacheMode ? el.perfCacheMode.value : (settings.cacheMode || 'disabled'),
+        vaeTiling: el.perfVaeTiling ? el.perfVaeTiling.checked : (settings.vaeTiling || false),
+        vaeTileSize: el.perfVaeTileSize ? (parseInt(el.perfVaeTileSize.value, 10) || 256) : (settings.vaeTileSize || 256),
+        vaeTileOverlap: el.perfVaeTileOverlap ? (parseFloat(el.perfVaeTileOverlap.value) || 0.5) : (settings.vaeTileOverlap || 0.5),
+        temporalTiling: el.perfTemporalTiling ? el.perfTemporalTiling.checked : (settings.temporalTiling || false),
+        offloadToCpu: el.perfOffloadToCpu ? el.perfOffloadToCpu.checked : (settings.offloadToCpu || false),
+        paramsBackend: el.perfParamsBackend ? el.perfParamsBackend.value : (settings.paramsBackend || 'auto'),
+        maxVram: el.perfMaxVram ? el.perfMaxVram.value.trim() : (settings.maxVram || ''),
+        cacheOption: el.perfCacheOption ? el.perfCacheOption.value.trim() : (settings.cacheOption || ''),
+        autoFit: el.perfAutoFit ? el.perfAutoFit.value : (settings.autoFit || 'on'),
+        threads: el.perfThreads ? (parseInt(el.perfThreads.value, 10) || -1) : (settings.threads || -1),
+        sageAttn: el.perfSageAttn ? el.perfSageAttn.checked : (settings.sageAttn || false),
+        disablePrefetch: el.perfDisablePrefetch ? el.perfDisablePrefetch.checked : (settings.disablePrefetch || false),
+        disableSegmentedCompute: el.perfDisableSegmentedCompute ? el.perfDisableSegmentedCompute.checked : (settings.disableSegmentedCompute || false),
+        galleryViewMode: galleryViewMode || settings.galleryViewMode || 'grid',
     };
 }
 
@@ -1520,6 +1760,31 @@ function applySettingsToUi() {
     if (el.loraApplyMode) el.loraApplyMode.value = settings.loraApplyMode || 'auto';
     if (el.selModelLoaderMode) el.selModelLoaderMode.value = settings.modelLoaderMode || 'auto';
     if (el.selTokenizer) el.selTokenizer.value = settings.tokenizerPath || '';
+
+    // Performance settings
+    if (el.perfFlashAttn) el.perfFlashAttn.value = settings.flashAttn || 'auto';
+    if (el.perfConvDirect) el.perfConvDirect.value = settings.convDirect || 'auto';
+    if (el.perfBatchedCfg) el.perfBatchedCfg.value = String(settings.batchedCfg !== false);
+    if (el.perfCacheMode) el.perfCacheMode.value = settings.cacheMode || 'disabled';
+    if (el.perfVaeTiling) el.perfVaeTiling.checked = !!settings.vaeTiling;
+    if (el.perfVaeTileSize) el.perfVaeTileSize.value = settings.vaeTileSize || 256;
+    if (el.perfVaeTileOverlap) el.perfVaeTileOverlap.value = settings.vaeTileOverlap != null ? settings.vaeTileOverlap : 0.5;
+    if (el.perfTemporalTiling) el.perfTemporalTiling.checked = !!settings.temporalTiling;
+    if (el.perfOffloadToCpu) el.perfOffloadToCpu.checked = !!settings.offloadToCpu;
+    if (el.perfParamsBackend) el.perfParamsBackend.value = settings.paramsBackend || 'auto';
+    if (el.perfMaxVram) el.perfMaxVram.value = settings.maxVram || '';
+    if (el.perfCacheOption) el.perfCacheOption.value = settings.cacheOption || '';
+    if (el.perfAutoFit) el.perfAutoFit.value = settings.autoFit || 'on';
+    if (el.perfThreads) el.perfThreads.value = settings.threads != null ? settings.threads : -1;
+    if (el.perfSageAttn) el.perfSageAttn.checked = !!settings.sageAttn;
+    if (el.perfDisablePrefetch) el.perfDisablePrefetch.checked = !!settings.disablePrefetch;
+    if (el.perfDisableSegmentedCompute) el.perfDisableSegmentedCompute.checked = !!settings.disableSegmentedCompute;
+    if (el.genVaeTiling) el.genVaeTiling.checked = !!settings.vaeTiling;
+
+    if (settings.galleryViewMode) {
+        setGalleryViewMode(settings.galleryViewMode);
+    }
+
     if (Array.isArray(settings.loraSlots)) {
         loraSlots = settings.loraSlots.map((s) => ({
             name: s.name || '',
@@ -1735,7 +2000,66 @@ function bindEvents() {
     el.megapixels.addEventListener('input', updateComputedSize);
     el.width.addEventListener('input', () => { el.width.value = snapTo8(parseInt(el.width.value, 10) || 512); });
     el.height.addEventListener('input', () => { el.height.value = snapTo8(parseInt(el.height.value, 10) || 512); });
-    el.btnClearGallery.addEventListener('click', () => { galleryItems = []; renderGallery(); });
+    // Gallery view toggle and controls
+    if (el.btnGalleryGrid) el.btnGalleryGrid.addEventListener('click', () => setGalleryViewMode('grid'));
+    if (el.btnGalleryBig) el.btnGalleryBig.addEventListener('click', () => setGalleryViewMode('big'));
+    if (el.btnBigPrev) {
+        el.btnBigPrev.addEventListener('click', () => {
+            if (currentBigIndex > 0) {
+                currentBigIndex--;
+                renderGalleryBig();
+            }
+        });
+    }
+    if (el.btnBigNext) {
+        el.btnBigNext.addEventListener('click', () => {
+            if (currentBigIndex < galleryItems.length - 1) {
+                currentBigIndex++;
+                renderGalleryBig();
+            }
+        });
+    }
+    window.addEventListener('keydown', (e) => {
+        if (galleryViewMode === 'big') {
+            if (e.key === 'ArrowLeft' && currentBigIndex > 0) {
+                currentBigIndex--;
+                renderGalleryBig();
+            } else if (e.key === 'ArrowRight' && currentBigIndex < galleryItems.length - 1) {
+                currentBigIndex++;
+                renderGalleryBig();
+            } else if (e.key === 'Escape') {
+                setGalleryViewMode('grid');
+            }
+        }
+    });
+
+    if (el.btnBigBackToGrid) {
+        el.btnBigBackToGrid.addEventListener('click', () => setGalleryViewMode('grid'));
+    }
+    if (el.galleryBigImg) {
+        el.galleryBigImg.addEventListener('click', () => {
+            const item = galleryItems[currentBigIndex];
+            if (item) openPreview(item);
+        });
+    }
+
+    // Quick VAE Tiling toggle
+    if (el.genVaeTiling) {
+        el.genVaeTiling.addEventListener('change', () => {
+            const val = el.genVaeTiling.checked;
+            settings.vaeTiling = val;
+            if (el.perfVaeTiling) el.perfVaeTiling.checked = val;
+            api.setSettings({ vaeTiling: val });
+            setGenStatus(`VAE Tiling ${val ? 'enabled' : 'disabled'}`, 'done');
+        });
+    }
+
+    // Clear gallery
+    el.btnClearGallery.addEventListener('click', () => {
+        galleryItems = [];
+        renderGallery();
+        renderGalleryBig();
+    });
     el.btnOpenGalleryDir.addEventListener('click', async () => {
         const dir = await ensureGalleryDir();
         if (dir) await api.openPath(dir);
@@ -1798,21 +2122,127 @@ function subscribe() {
 }
 
 // ---------- Capabilities ----------
+const SD_BUILTIN_SAMPLERS = [
+    { value: 'euler_a', label: 'Euler A' },
+    { value: 'euler', label: 'Euler' },
+    { value: 'heun', label: 'Heun' },
+    { value: 'dpm2', label: 'DPM2' },
+    { value: 'dpm++2m', label: 'DPM++ 2M' },
+    { value: 'dpm++2mv2', label: 'DPM++ 2M v2' },
+    { value: 'dpm++2s_a', label: 'DPM++ 2S a' },
+    { value: 'dpm++2m_sde', label: 'DPM++ 2M SDE' },
+    { value: 'dpm++2m_sde_bt', label: 'DPM++ 2M SDE BT' },
+    { value: 'lcm', label: 'LCM' },
+    { value: 'er_sde', label: 'ER-SDE' },
+    { value: 'ipndm', label: 'IPNDM' },
+    { value: 'ipndm_v', label: 'IPNDM-V' },
+    { value: 'ddim_trailing', label: 'DDIM Trailing' },
+    { value: 'tcd', label: 'TCD' },
+    { value: 'res_multistep', label: 'Res MultiStep' },
+    { value: 'res_2s', label: 'Res 2S' },
+    { value: 'euler_cfg_pp', label: 'Euler CFG++' },
+    { value: 'euler_a_cfg_pp', label: 'Euler A CFG++' },
+    { value: 'euler_ge', label: 'Euler GE' },
+    { value: 'lms', label: 'LMS' },
+];
+
+const SD_BUILTIN_SCHEDULERS = [
+    { value: 'discrete', label: 'discrete' },
+    { value: 'normal', label: 'normal' },
+    { value: 'karras', label: 'karras' },
+    { value: 'exponential', label: 'exponential' },
+    { value: 'ays', label: 'ays' },
+    { value: 'gits', label: 'gits' },
+    { value: 'smoothstep', label: 'smoothstep' },
+    { value: 'sgm_uniform', label: 'sgm_uniform' },
+    { value: 'simple', label: 'simple' },
+    { value: 'kl_optimal', label: 'kl_optimal' },
+    { value: 'lcm', label: 'lcm' },
+    { value: 'bong_tangent', label: 'bong_tangent' },
+    { value: 'ltx2', label: 'ltx2' },
+    { value: 'logit_normal', label: 'logit_normal' },
+    { value: 'flux2', label: 'flux2' },
+    { value: 'flux', label: 'flux' },
+    { value: 'beta', label: 'beta' },
+    { value: 'llada_image', label: 'llada_image' },
+];
+
+function syncSamplers(serverSamplers) {
+    if (!el.sampler) return;
+    const current = el.sampler.value || settings.sampler || 'euler_a';
+    el.sampler.innerHTML = '';
+
+    const labelMap = new Map();
+    for (const s of SD_BUILTIN_SAMPLERS) labelMap.set(s.value, s.label);
+
+    const list = Array.isArray(serverSamplers) && serverSamplers.length
+        ? Array.from(new Set(serverSamplers))
+        : SD_BUILTIN_SAMPLERS.map((s) => s.value);
+
+    for (const v of list) {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = labelMap.get(v) || v;
+        el.sampler.appendChild(opt);
+    }
+
+    if (list.includes(current)) {
+        el.sampler.value = current;
+    } else if (list.includes(settings.sampler)) {
+        el.sampler.value = settings.sampler;
+    } else if (el.sampler.options.length) {
+        el.sampler.value = el.sampler.options[0].value;
+    }
+}
+
+function syncSchedulers(serverSchedulers) {
+    if (!el.scheduler) return;
+    const current = el.scheduler.value || settings.scheduler || 'discrete';
+    el.scheduler.innerHTML = '';
+
+    const labelMap = new Map();
+    for (const s of SD_BUILTIN_SCHEDULERS) labelMap.set(s.value, s.label);
+
+    const list = Array.isArray(serverSchedulers) && serverSchedulers.length
+        ? Array.from(new Set(serverSchedulers))
+        : SD_BUILTIN_SCHEDULERS.map((s) => s.value);
+
+    for (const v of list) {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = labelMap.get(v) || v;
+        el.scheduler.appendChild(opt);
+    }
+
+    if (list.includes(current)) {
+        el.scheduler.value = current;
+    } else if (list.includes(settings.scheduler)) {
+        el.scheduler.value = settings.scheduler;
+    } else if (el.scheduler.options.length) {
+        el.scheduler.value = el.scheduler.options[0].value;
+    }
+}
+
 async function loadCapabilities() {
     const res = await api.getCapabilities();
     if (!res.ok) return;
     capabilities = res.caps;
+
     if (Array.isArray(capabilities.samplers) && capabilities.samplers.length) {
-        populateSelect(el.sampler, capabilities.samplers, 'euler_a');
+        syncSamplers(capabilities.samplers);
+    } else {
+        syncSamplers();
     }
+
     if (Array.isArray(capabilities.schedulers) && capabilities.schedulers.length) {
-        populateSelect(el.scheduler, capabilities.schedulers, 'discrete');
+        syncSchedulers(capabilities.schedulers);
+    } else {
+        syncSchedulers();
     }
+
     if (capabilities.defaults) {
         const d = capabilities.defaults;
         if (d.sample_params) {
-            // Only apply server defaults to untouched fields. Never clobber the
-            // values the user chose, otherwise every re-ready resets their steps/CFG.
             if (d.sample_params.sample_steps && el.steps.value.trim() === '') {
                 el.steps.value = d.sample_params.sample_steps;
             }
@@ -1820,21 +2250,6 @@ async function loadCapabilities() {
                 el.cfgScale.value = d.sample_params.guidance.txt_cfg;
             }
         }
-    }
-}
-
-function populateSelect(select, values, fallback) {
-    const current = select.value;
-    select.innerHTML = '';
-    for (const v of values) {
-        const opt = document.createElement('option');
-        opt.value = v;
-        opt.textContent = v;
-        select.appendChild(opt);
-    }
-    const target = values.includes(current) ? current : fallback;
-    if (target && values.includes(target)) {
-        select.value = target;
     }
 }
 
@@ -1975,6 +2390,8 @@ async function init() {
     subscribe();
     settings = await api.getSettings();
     applySettingsToUi();
+    syncSamplers();
+    syncSchedulers();
     await loadDataInfo();
     await loadStyles();
     await loadThemes();

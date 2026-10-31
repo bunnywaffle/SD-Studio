@@ -200,8 +200,19 @@
                             <option value="dpm++2mv2">DPM++ 2M v2</option>
                             <option value="dpm++2s_a">DPM++ 2S a</option>
                             <option value="dpm++2m_sde">DPM++ 2M SDE</option>
+                            <option value="dpm++2m_sde_bt">DPM++ 2M SDE BT</option>
                             <option value="lcm">LCM</option>
                             <option value="er_sde">ER-SDE</option>
+                            <option value="ipndm">IPNDM</option>
+                            <option value="ipndm_v">IPNDM-V</option>
+                            <option value="ddim_trailing">DDIM Trailing</option>
+                            <option value="tcd">TCD</option>
+                            <option value="res_multistep">Res MultiStep</option>
+                            <option value="res_2s">Res 2S</option>
+                            <option value="euler_cfg_pp">Euler CFG++</option>
+                            <option value="euler_a_cfg_pp">Euler A CFG++</option>
+                            <option value="euler_ge">Euler GE</option>
+                            <option value="lms">LMS</option>
                         </select>
                     </div>
                     <div class="param">
@@ -218,6 +229,13 @@
                             <option value="simple">simple</option>
                             <option value="kl_optimal">kl_optimal</option>
                             <option value="lcm">lcm</option>
+                            <option value="bong_tangent">bong_tangent</option>
+                            <option value="ltx2">ltx2</option>
+                            <option value="logit_normal">logit_normal</option>
+                            <option value="flux2">flux2</option>
+                            <option value="flux">flux</option>
+                            <option value="beta">beta</option>
+                            <option value="llada_image">llada_image</option>
                         </select>
                     </div>
                     <div class="param">
@@ -238,6 +256,13 @@
                             <option value="jpeg">JPEG</option>
                             <option value="webp">WebP</option>
                         </select>
+                    </div>
+                    <div class="param">
+                        <label title="VAE Tiling encodes and decodes in tiles to save VRAM and prevent OOM">VAE Tiling</label>
+                        <label class="inline" style="margin-top: 6px; font-size: 12px; cursor: pointer;">
+                            <input type="checkbox" id="genVaeTiling" />
+                            Enable tiling
+                        </label>
                     </div>
                 </div>
 
@@ -310,15 +335,50 @@
                 <div class="lora-header">
                     <h2 class="card-title">✨ Gallery <span class="gallery-count" id="galleryCount"></span></h2>
                     <div class="gallery-actions">
+                        <div class="gallery-view-toggle">
+                            <button class="btn btn-sm btn-ghost active" id="btnGalleryGrid" title="Thumbnail Grid view">▞ Grid</button>
+                            <button class="btn btn-sm btn-ghost" id="btnGalleryBig" title="Recent generation / Big picture view">🖼 Big Picture</button>
+                        </div>
                         <button class="btn btn-sm btn-ghost" id="btnClearGallery" title="Clear gallery">Clear</button>
                         <button class="btn btn-sm btn-ghost" id="btnOpenGalleryDir" title="Open gallery folder">Open</button>
                     </div>
                 </div>
+                <!-- Thumbnail Grid View -->
                 <div class="gallery" id="gallery">
                     <div class="gallery-empty">
                         <div class="gallery-empty-art">🎨</div>
                         <p class="gallery-empty-title">No images yet</p>
                         <p class="muted">Your creations will appear here. Try a prompt and hit Generate!</p>
+                    </div>
+                </div>
+                <!-- Big Picture / Recent Generation View -->
+                <div class="gallery-big-view" id="galleryBigView" hidden>
+                    <div class="gallery-big-empty" id="galleryBigEmpty">
+                        <div class="gallery-empty-art">🖼</div>
+                        <p class="gallery-empty-title">No recent generation</p>
+                        <p class="muted">Generate an image to view it here in full size.</p>
+                    </div>
+                    <div class="gallery-big-content" id="galleryBigContent" hidden>
+                        <div class="gallery-big-nav">
+                            <button class="btn btn-sm btn-ghost" id="btnBigPrev" title="Previous generation">‹ Prev</button>
+                            <span class="gallery-big-index" id="galleryBigIndex">1 / 1</span>
+                            <button class="btn btn-sm btn-ghost" id="btnBigNext" title="Next generation">Next ›</button>
+                            <button class="btn btn-sm btn-ghost" id="btnBigBackToGrid" title="Switch to Grid view">▞ Grid</button>
+                        </div>
+                        <div class="gallery-big-stage">
+                            <img id="galleryBigImg" src="" alt="Recent Generation" />
+                            <div class="gallery-big-zoom-hint" title="Click to open full modal preview">🔍 Click to zoom</div>
+                        </div>
+                        <div class="gallery-big-meta" id="galleryBigMeta">
+                            <p class="gallery-big-prompt" id="galleryBigPrompt" title="Prompt"></p>
+                            <div class="gallery-big-tags" id="galleryBigTags"></div>
+                            <div class="gallery-big-actions">
+                                <button class="btn btn-sm btn-primary" id="btnBigSave">💾 Save Image</button>
+                                <button class="btn btn-sm btn-ghost" id="btnBigCopyPrompt" title="Copy prompt">📋 Prompt</button>
+                                <button class="btn btn-sm btn-ghost" id="btnBigUseSeed" title="Reuse seed">🎲 Seed</button>
+                                <button class="btn btn-sm btn-ghost" id="btnBigOpenPreview" title="Full size preview">🔍 Fullscreen</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -338,6 +398,7 @@
             <div class="settings-tabs">
                 <button class="settings-tab active" data-tab="tab-server">Server</button>
                 <button class="settings-tab" data-tab="tab-backend">Backend</button>
+                <button class="settings-tab" data-tab="tab-performance">⚡ Performance</button>
                 <button class="settings-tab" data-tab="tab-models">Models</button>
                 <button class="settings-tab" data-tab="tab-runtime">Runtime &amp; GPU</button>
                 <button class="settings-tab" data-tab="tab-theme">Theme</button>
@@ -395,6 +456,159 @@
                         <div class="progress-wrap" id="progressWrap" hidden>
                             <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
                             <span class="progress-text" id="progressText"></span>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="settings-tab-panel" id="tab-performance" hidden>
+                    <section class="card">
+                        <div class="card-subtitle">Performance &amp; Memory Optimizations (from stable-diffusion.cpp performance guide)</div>
+                        
+                        <div class="field-grid">
+                            <div class="field-row">
+                                <label>Flash Attention <span class="hint">(--flash-attn)</span></label>
+                                <select id="perfFlashAttn">
+                                    <option value="auto">auto — backend default (recommended)</option>
+                                    <option value="on">on — save ~600MB on FLUX, ~1400MB on SD2</option>
+                                    <option value="off">off — disable flash attention</option>
+                                </select>
+                                <p class="field-note">Reduces memory usage by varying amounts. Compare on/off for speed on your GPU.</p>
+                            </div>
+
+                            <div class="field-row">
+                                <label>Direct Convolution <span class="hint">(--conv-direct)</span></label>
+                                <select id="perfConvDirect">
+                                    <option value="auto">auto — benchmark-based selection</option>
+                                    <option value="on">on — force direct convolution</option>
+                                    <option value="off">off — force im2col path</option>
+                                </select>
+                                <p class="field-note">Selects direct convolution or im2col. Can improve or reduce speed depending on GPU backend.</p>
+                            </div>
+                        </div>
+
+                        <div class="field-grid">
+                            <div class="field-row">
+                                <label>Batched CFG <span class="hint">(--batched-cfg)</span></label>
+                                <select id="perfBatchedCfg">
+                                    <option value="true">on (default) — run cond/uncond in one forward</option>
+                                    <option value="false">off — force separate forwards</option>
+                                </select>
+                                <p class="field-note">For UNet models, concatenates guidance branches into a single batch forward.</p>
+                            </div>
+
+                            <div class="field-row">
+                                <label>Diffusion Cache Mode <span class="hint">(--cache-mode)</span></label>
+                                <select id="perfCacheMode">
+                                    <option value="disabled">disabled (default)</option>
+                                    <option value="easycache">easycache — DiT models</option>
+                                    <option value="ucache">ucache — UNet models</option>
+                                    <option value="cache-dit">cache-dit — DiT block-level</option>
+                                    <option value="dbcache">dbcache</option>
+                                    <option value="taylorseer">taylorseer</option>
+                                    <option value="spectrum">spectrum</option>
+                                </select>
+                                <p class="field-note">Caches intermediate diffusion steps to accelerate repeated/similar generation.</p>
+                            </div>
+                            <div class="field-row">
+                                <label>Cache Options <span class="hint">(--cache-option)</span></label>
+                                <input type="text" id="perfCacheOption" placeholder="e.g. threshold=0.1,start=0.2,end=0.8" />
+                                <p class="field-note">Fine-tuning parameters for step caching (e.g. threshold, decay, reset, start, end).</p>
+                            </div>
+                        </div>
+
+                        <div class="field-row">
+                            <label class="inline">
+                                <input type="checkbox" id="perfVaeTiling" />
+                                <strong>Enable VAE Tiling</strong> <span class="hint">(--vae-tiling) — prevents OOM on large images / low VRAM</span>
+                            </label>
+                            <p class="field-note">Processes VAE encode and decode in spatial tiles. Highly recommended for high resolutions, SDXL, and FLUX on cards with &lt;16GB VRAM.</p>
+                        </div>
+
+                        <div class="field-grid" id="perfVaeTilingDetails">
+                            <div class="field-row">
+                                <label>Tile size <span class="hint">(--vae-tile-size image pixels)</span></label>
+                                <input type="number" id="perfVaeTileSize" value="256" min="64" max="2048" step="64" placeholder="256" />
+                            </div>
+                            <div class="field-row">
+                                <label>Tile overlap <span class="hint">(--vae-tile-overlap fraction)</span></label>
+                                <input type="number" id="perfVaeTileOverlap" value="0.5" min="0" max="0.5" step="0.05" placeholder="0.5" />
+                            </div>
+                        </div>
+
+                        <div class="field-row">
+                            <label class="inline">
+                                <input type="checkbox" id="perfTemporalTiling" />
+                                Enable Temporal Tiling <span class="hint">(--temporal-tiling) for video VAE</span>
+                            </label>
+                        </div>
+
+                        <div class="field-row">
+                            <label class="inline">
+                                <input type="checkbox" id="perfOffloadToCpu" />
+                                <strong>Offload weights to CPU</strong> <span class="hint">(--offload-to-cpu) — biggest model my card can host</span>
+                            </label>
+                            <p class="field-note">Keeps model weights in system RAM and stages them to GPU dynamically on demand. Allows running models that exceed your physical VRAM.</p>
+                        </div>
+
+                        <div class="field-grid">
+                            <div class="field-row">
+                                <label>Params Backend <span class="hint">(--params-backend)</span></label>
+                                <select id="perfParamsBackend">
+                                    <option value="auto">auto — default placement</option>
+                                    <option value="cpu">cpu — keep weights in RAM, stage to GPU</option>
+                                    <option value="disk">disk — read on demand, lowest RAM usage</option>
+                                </select>
+                                <p class="field-note">Controls where parameters live. "disk" minimizes system RAM residency.</p>
+                            </div>
+
+                            <div class="field-row">
+                                <label>Max VRAM Budget <span class="hint">(--max-vram)</span></label>
+                                <input type="text" id="perfMaxVram" placeholder="-1 (reserve ~1GB) or e.g. 8" />
+                                <p class="field-note">Optional managed VRAM budget in GiB. Set to -1 to snapshot free VRAM and reserve 1GB headroom.</p>
+                            </div>
+                        </div>
+
+                        <div class="field-grid">
+                            <div class="field-row">
+                                <label>Graph Auto-Fit <span class="hint">(--auto-fit)</span></label>
+                                <select id="perfAutoFit">
+                                    <option value="on">on (default) — auto multi-device / memory fitting</option>
+                                    <option value="off">off — disable automatic graph partitioning</option>
+                                </select>
+                                <p class="field-note">Automatically selects placement and segment boundaries for large models.</p>
+                            </div>
+
+                            <div class="field-row">
+                                <label>CPU Compute Threads <span class="hint">(-t, --threads)</span></label>
+                                <input type="number" id="perfThreads" min="-1" max="128" placeholder="auto (-1)" />
+                                <p class="field-note">-1 or 0 uses all physical CPU cores automatically.</p>
+                            </div>
+                        </div>
+
+                        <div class="field-grid">
+                            <div class="field-row">
+                                <label class="inline">
+                                    <input type="checkbox" id="perfSageAttn" />
+                                    <strong>Enable SageAttention</strong> <span class="hint">(--sage-attn)</span>
+                                </label>
+                                <p class="field-note">Accelerated native CUDA SageAttention for supported diffusion models.</p>
+                            </div>
+
+                            <div class="field-row">
+                                <label class="inline">
+                                    <input type="checkbox" id="perfDisablePrefetch" />
+                                    Disable Prefetch <span class="hint">(--disable-prefetch)</span>
+                                </label>
+                                <p class="field-note">Disable asynchronous next-segment weight prefetch if encountering PCI-e stutter.</p>
+                            </div>
+                        </div>
+
+                        <div class="field-row">
+                            <label class="inline">
+                                <input type="checkbox" id="perfDisableSegmentedCompute" />
+                                Disable Segmented Compute <span class="hint">(--disable-segmented-compute)</span>
+                            </label>
+                            <p class="field-note">Force monolithic execution even when graph segmentation is triggered.</p>
                         </div>
                     </section>
                 </div>

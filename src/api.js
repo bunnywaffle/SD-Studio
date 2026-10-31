@@ -88,6 +88,22 @@ class ServerApiClient {
         }
     }
 
+    async getSamplers() {
+        try {
+            return await this.request('GET', '/sdapi/v1/samplers');
+        } catch {
+            return [];
+        }
+    }
+
+    async getSchedulers() {
+        try {
+            return await this.request('GET', '/sdapi/v1/schedulers');
+        } catch {
+            return [];
+        }
+    }
+
     /**
      * Submit an image generation job (native async API).
      * Returns { id, pollUrl }.

@@ -44,7 +44,29 @@ class SettingsStore {
             scheduler: 'discrete',
             outputFormat: 'png',
             theme: 'neutral',
-            loraApplyMode: 'auto'
+            loraApplyMode: 'auto',
+
+            // Performance & Memory settings (docs/performance.md)
+            flashAttn: 'auto',
+            convDirect: 'auto',
+            batchedCfg: true,
+            vaeTiling: false,
+            vaeTileSize: 256,
+            vaeTileOverlap: 0.5,
+            temporalTiling: false,
+            offloadToCpu: false,
+            paramsBackend: 'auto',
+            maxVram: '',
+            cacheMode: 'disabled',
+            cacheOption: '',
+            autoFit: 'on',
+            disablePrefetch: false,
+            disableSegmentedCompute: false,
+            threads: -1,
+            sageAttn: false,
+
+            // Gallery view mode ('grid' | 'big')
+            galleryViewMode: 'grid'
         };
         this.load();
     }

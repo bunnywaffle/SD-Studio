@@ -362,6 +362,90 @@ class BackendManager {
         if (loraMode && loraMode !== 'auto') {
             args.push('--lora-apply-mode', loraMode);
         }
+        // Performance & memory optimizations from docs/performance.md
+        const hasExtra = (flag) => extraTokens.some((t) => t === flag || t.startsWith(flag + '='));
+
+        const flashAttn = this.settings.get('flashAttn');
+        if (!hasExtra('--flash-attn') && flashAttn && flashAttn !== 'auto') {
+            args.push('--flash-attn', flashAttn);
+        }
+
+        const convDirect = this.settings.get('convDirect');
+        if (!hasExtra('--conv-direct') && convDirect && convDirect !== 'auto') {
+            args.push('--conv-direct', convDirect);
+        }
+
+        const batchedCfg = this.settings.get('batchedCfg');
+        if (!hasExtra('--batched-cfg') && batchedCfg === false) {
+            args.push('--batched-cfg', 'off');
+        }
+
+        const vaeTiling = this.settings.get('vaeTiling');
+        if (!hasExtra('--vae-tiling') && vaeTiling) {
+            args.push('--vae-tiling');
+            const tileSize = parseInt(this.settings.get('vaeTileSize'), 10) || 256;
+            if (!hasExtra('--vae-tile-size') && tileSize > 0) {
+                args.push('--vae-tile-size', tileSize + 'x' + tileSize);
+            }
+            const overlap = parseFloat(this.settings.get('vaeTileOverlap'));
+            if (!hasExtra('--vae-tile-overlap') && !isNaN(overlap) && overlap >= 0 && overlap <= 0.5) {
+                args.push('--vae-tile-overlap', String(overlap));
+            }
+            if (!hasExtra('--temporal-tiling') && this.settings.get('temporalTiling')) {
+                args.push('--temporal-tiling');
+            }
+        }
+
+        const offloadToCpu = this.settings.get('offloadToCpu');
+        if (!hasExtra('--offload-to-cpu') && offloadToCpu) {
+            args.push('--offload-to-cpu');
+        }
+
+        const paramsBackend = this.settings.get('paramsBackend');
+        if (!hasExtra('--params-backend') && paramsBackend && paramsBackend !== 'auto') {
+            args.push('--params-backend', paramsBackend);
+        }
+
+        const maxVram = String(this.settings.get('maxVram') || '').trim();
+        if (!hasExtra('--max-vram') && maxVram) {
+            args.push('--max-vram', maxVram);
+        }
+
+        const cacheMode = this.settings.get('cacheMode');
+        if (!hasExtra('--cache-mode') && cacheMode && cacheMode !== 'disabled') {
+            args.push('--cache-mode', cacheMode);
+        }
+
+        const cacheOption = String(this.settings.get('cacheOption') || '').trim();
+        if (!hasExtra('--cache-option') && cacheOption) {
+            args.push('--cache-option', cacheOption);
+        }
+
+        const autoFit = this.settings.get('autoFit');
+        if (!hasExtra('--auto-fit') && autoFit && autoFit !== 'on') {
+            args.push('--auto-fit', autoFit);
+        }
+
+        const disablePrefetch = this.settings.get('disablePrefetch');
+        if (!hasExtra('--disable-prefetch') && disablePrefetch) {
+            args.push('--disable-prefetch');
+        }
+
+        const disableSegmentedCompute = this.settings.get('disableSegmentedCompute');
+        if (!hasExtra('--disable-segmented-compute') && disableSegmentedCompute) {
+            args.push('--disable-segmented-compute');
+        }
+
+        const sageAttn = this.settings.get('sageAttn');
+        if (!hasExtra('--sage-attn') && sageAttn) {
+            args.push('--sage-attn');
+        }
+
+        const threads = parseInt(this.settings.get('threads'), 10);
+        if (!hasExtra('--threads') && !hasExtra('-t') && !isNaN(threads) && threads > 0) {
+            args.push('--threads', String(threads));
+        }
+
         args.push('--listen-ip', host);
         args.push('--listen-port', String(port));
 

@@ -876,7 +876,30 @@ ipcMain.handle('gen:cancel', async (e, jobId) => {
 
 ipcMain.handle('gen:capabilities', async () => {
     try {
-        const caps = await api.getCapabilities();
+        let caps = {};
+        try {
+            caps = (await api.getCapabilities()) || {};
+        } catch (e) {
+            caps = {};
+        }
+        // Fallback sync for samplers if not reported in capabilities
+        if (!Array.isArray(caps.samplers) || !caps.samplers.length) {
+            try {
+                const sList = await api.getSamplers();
+                if (Array.isArray(sList) && sList.length) {
+                    caps.samplers = sList.map((s) => (typeof s === 'string' ? s : (s && s.name))).filter(Boolean);
+                }
+            } catch {}
+        }
+        // Fallback sync for schedulers if not reported in capabilities
+        if (!Array.isArray(caps.schedulers) || !caps.schedulers.length) {
+            try {
+                const scList = await api.getSchedulers();
+                if (Array.isArray(scList) && scList.length) {
+                    caps.schedulers = scList.map((s) => (typeof s === 'string' ? s : (s && s.name))).filter(Boolean);
+                }
+            } catch {}
+        }
         return { ok: true, caps };
     } catch (err) {
         return { ok: false, error: err.message };

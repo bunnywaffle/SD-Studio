@@ -67,6 +67,20 @@ const server = http.createServer((req, res) => {
             return;
         }
 
+        if (req.method === 'GET' && url === '/sdapi/v1/samplers') {
+            sendJson(res, 200, [
+                { name: 'euler_a' }, { name: 'euler' }, { name: 'heun' }, { name: 'dpm2' }, { name: 'dpm++2m' }
+            ]);
+            return;
+        }
+
+        if (req.method === 'GET' && url === '/sdapi/v1/schedulers') {
+            sendJson(res, 200, [
+                { name: 'discrete', label: 'discrete' }, { name: 'normal', label: 'normal' }, { name: 'karras', label: 'karras' }
+            ]);
+            return;
+        }
+
         if (req.method === 'POST' && url === '/sdcpp/v1/img_gen') {
             const id = 'job_test_' + (++counter);
             const created = Math.floor(Date.now() / 1000);
