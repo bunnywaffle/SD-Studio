@@ -1883,3 +1883,94 @@ textarea::placeholder { color: var(--text-faint); }
     margin-bottom: 12px;
     font-weight: 500;
 }
+
+
+/* ============ Backend Manager ============ */
+.backend-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+    max-height: 380px;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+.backend-empty {
+    padding: 24px 16px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: var(--radius-sm);
+    border: 1px dashed var(--border);
+}
+
+.backend-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.backend-item:hover {
+    border-color: var(--border-hover);
+}
+
+.backend-item.active {
+    border-color: var(--accent);
+    background: rgba(124, 92, 255, 0.05);
+    box-shadow: 0 0 0 1px rgba(124, 92, 255, 0.25);
+}
+
+.backend-item-header {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.backend-item-title-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.backend-item-name {
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--text);
+    word-break: break-all;
+}
+
+.backend-item-path {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: monospace;
+    word-break: break-all;
+}
+
+.backend-item-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    font-size: 11px;
+    color: var(--text-dim);
+}
+
+.backend-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.backend-item-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+}

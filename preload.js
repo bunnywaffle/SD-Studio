@@ -42,6 +42,11 @@ contextBridge.exposeInMainWorld('sdcpp', {
     startServer: () => ipcRenderer.invoke('backend:start'),
     stopServer: () => ipcRenderer.invoke('backend:stop'),
     validateDir: (dir) => ipcRenderer.invoke('backend:validateDir', dir),
+    listInstalledBackends: () => ipcRenderer.invoke('backend:listInstalled'),
+    setActiveBackend: (dir) => ipcRenderer.invoke('backend:setActive', dir),
+    deleteBackend: (dir) => ipcRenderer.invoke('backend:delete', dir),
+    openBackendsFolder: () => ipcRenderer.invoke('backend:openRoot'),
+    openBackendFolder: (dir) => ipcRenderer.invoke('backend:openFolder', dir),
 
     // runtime & GPU detection
     getRuntimeInfo: () => ipcRenderer.invoke('runtime:info'),

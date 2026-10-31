@@ -130,6 +130,11 @@ class BackendManager {
         this.runningUrl = null;
         this.autoStartPending = false;
         this.listeners = [];
+        const initDir = this.settings.get('backendDir');
+        if (initDir && fs.existsSync(initDir)) {
+            const exes = findServerExecutable(initDir);
+            if (exes.length) this.serverPath = exes[0];
+        }
     }
 
     onUpdate(cb) {
@@ -244,6 +249,187 @@ class BackendManager {
         this.serverPath = exes[0] || null;
         this.emit({ type: 'state', ...this.getState() });
         return this.serverPath;
+    }
+
+    listInstalledBackends() {
+        const root = this.getBackendRoot();
+        const activeDir = this.settings.get('backendDir') || '';
+        const norm = (p) => (p ? path.resolve(p).toLowerCase() : '');
+        const activeNorm = norm(activeDir);
+
+        const items = [];
+        const seen = new Set();
+
+        const detectVariant = (name, p) => {
+            const str = (name + ' ' + p).toLowerCase();
+            if (/cuda12|cu12/i.test(str)) return 'CUDA 12';
+            if (/cuda11|cu11/i.test(str)) return 'CUDA 11';
+            if (/vulkan/i.test(str)) return 'Vulkan';
+            if (/rocm|hip/i.test(str)) return 'ROCm';
+            if (/sycl/i.test(str)) return 'SYCL';
+            if (/avx512/i.test(str)) return 'CPU AVX-512';
+            if (/avx2/i.test(str)) return 'CPU AVX2';
+            if (/cpu/i.test(str)) return 'CPU';
+            return 'Generic';
+        };
+
+        const computeFolderSize = (folder) => {
+            let total = 0;
+            try {
+                const stack = [folder];
+                while (stack.length > 0) {
+                    const curr = stack.pop();
+                    const entries = fs.readdirSync(curr, { withFileTypes: true });
+                    for (const entry of entries) {
+                        const full = path.join(curr, entry.name);
+                        if (entry.isDirectory()) stack.push(full);
+                        else if (entry.isFile()) total += fs.statSync(full).size;
+                    }
+                }
+            } catch {}
+            return total;
+        };
+
+        // 1. Scan managed root
+        if (fs.existsSync(root)) {
+            let entries = [];
+            try {
+                entries = fs.readdirSync(root, { withFileTypes: true });
+            } catch {}
+
+            for (const entry of entries) {
+                if (!entry.isDirectory()) continue;
+                if (entry.name.startsWith('.') || entry.name.startsWith('_')) continue;
+                const full = path.join(root, entry.name);
+                const fullNorm = norm(full);
+                seen.add(fullNorm);
+
+                const exes = findServerExecutable(full);
+                let stat = null;
+                try {
+                    stat = fs.statSync(full);
+                } catch {}
+
+                let name = entry.name;
+                if (name.includes('__')) {
+                    const parts = name.split('__');
+                    name = parts[1] || parts[0];
+                }
+
+                items.push({
+                    id: entry.name,
+                    name: name,
+                    folderName: entry.name,
+                    path: full,
+                    serverPath: exes[0] || null,
+                    isValid: exes.length > 0,
+                    isActive: fullNorm === activeNorm,
+                    isExternal: false,
+                    variant: detectVariant(entry.name, full),
+                    size: computeFolderSize(full),
+                    mtime: stat ? stat.mtimeMs : 0
+                });
+            }
+        }
+
+        // 2. Active external backend (if outside root)
+        if (activeDir && fs.existsSync(activeDir)) {
+            const activePathNorm = norm(activeDir);
+            if (!seen.has(activePathNorm)) {
+                const exes = findServerExecutable(activeDir);
+                let stat = null;
+                try {
+                    stat = fs.statSync(activeDir);
+                } catch {}
+
+                items.push({
+                    id: 'external-active',
+                    name: path.basename(activeDir),
+                    folderName: path.basename(activeDir),
+                    path: activeDir,
+                    serverPath: exes[0] || null,
+                    isValid: exes.length > 0,
+                    isActive: true,
+                    isExternal: true,
+                    variant: detectVariant(path.basename(activeDir), activeDir),
+                    size: 0,
+                    mtime: stat ? stat.mtimeMs : 0
+                });
+            }
+        }
+
+        items.sort((a, b) => {
+            if (a.isActive && !b.isActive) return -1;
+            if (!a.isActive && b.isActive) return 1;
+            return b.mtime - a.mtime;
+        });
+
+        return items;
+    }
+
+    setActiveBackend(targetPath) {
+        if (!targetPath || !fs.existsSync(targetPath)) {
+            throw new Error(`Directory does not exist: ${targetPath}`);
+        }
+        const check = validateBackendDir(targetPath);
+        if (!check.ok) {
+            throw new Error(check.error || 'Invalid backend directory (sd-server not found).');
+        }
+        this.settings.set('backendDir', targetPath);
+        this.serverPath = check.serverPath;
+        this.log('info', `Active backend set to: ${targetPath}`);
+        this.emit({ type: 'state', ...this.getState() });
+        return {
+            ok: true,
+            serverPath: check.serverPath,
+            backendDir: targetPath,
+            backends: this.listInstalledBackends()
+        };
+    }
+
+    async deleteBackend(targetPath) {
+        if (!targetPath) throw new Error('Target backend path is required');
+        const norm = (p) => path.resolve(p).toLowerCase();
+        const rootNorm = norm(this.getBackendRoot());
+        const targetNorm = norm(targetPath);
+
+        const isManaged = targetNorm.startsWith(rootNorm + path.sep);
+        const isActive = norm(this.settings.get('backendDir') || '') === targetNorm;
+
+        if (isActive && this.status !== 'stopped') {
+            this.log('info', 'Stopping server before deleting active backend...');
+            await this.stop();
+        }
+
+        if (isActive) {
+            this.settings.set('backendDir', '');
+            this.serverPath = null;
+        }
+
+        if (isManaged) {
+            if (fs.existsSync(targetPath)) {
+                this.log('info', `Deleting backend folder: ${targetPath}`);
+                fs.rmSync(targetPath, { recursive: true, force: true });
+            }
+        }
+
+        // If the active backend was deleted, select next available if any
+        if (isActive) {
+            const remaining = this.listInstalledBackends().filter((b) => b.isValid);
+            if (remaining.length > 0) {
+                this.setActiveBackend(remaining[0].path);
+            } else {
+                this.emit({ type: 'state', ...this.getState() });
+            }
+        } else {
+            this.emit({ type: 'state', ...this.getState() });
+        }
+
+        return {
+            ok: true,
+            deletedPath: targetPath,
+            backends: this.listInstalledBackends()
+        };
     }
 
     /**

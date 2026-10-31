@@ -20,6 +20,11 @@ const el = {
     btnImportZip: document.getElementById('btnImportZip'),
     btnDownloadLatest: document.getElementById('btnDownloadLatest'),
     btnLinkFolder: document.getElementById('btnLinkFolder'),
+    btnManageBackends: document.getElementById('btnManageBackends'),
+    btnOpenBackendsFolder: document.getElementById('btnOpenBackendsFolder'),
+    btnRefreshBackends: document.getElementById('btnRefreshBackends'),
+    backendList: document.getElementById('backendList'),
+    backendCount: document.getElementById('backendCount'),
     downloadArea: document.getElementById('downloadArea'),
     downloadLabel: document.getElementById('downloadLabel'),
     assetList: document.getElementById('assetList'),
@@ -175,6 +180,7 @@ let loraSlots = [];
 let activeJob = null;
 let pollTimer = null;
 let galleryItems = [];
+let installedBackends = [];
 let galleryDir = null;
 let galleryViewMode = 'grid'; // 'grid' | 'big'
 let currentBigIndex = 0;
@@ -1609,6 +1615,8 @@ async function importZip() {
         setGenStatus('Backend imported.', 'done');
         el.serverBinary.value = res.serverPath;
         saveSettingsFromUi();
+        await loadInstalledBackends();
+        await loadRuntimeInfo(false);
     } else if (!res.canceled) {
         setGenStatus(`Import failed: ${res.error}`, 'error');
     }
@@ -1621,8 +1629,179 @@ async function linkBackendFolder() {
         setGenStatus('Backend linked.', 'done');
         el.serverBinary.value = res.serverPath;
         saveSettingsFromUi();
+        await loadInstalledBackends();
+        await loadRuntimeInfo(false);
     } else if (!res.canceled) {
         setGenStatus(`Link failed: ${res.error}`, 'error');
+    }
+}
+
+
+// ---------- Backend Management (List / Set Active / Delete) ----------
+function switchSettingsTab(tabId) {
+    if (el.settingsModal) el.settingsModal.hidden = false;
+    document.querySelectorAll('#settingsModal .settings-tab').forEach((t) => {
+        t.classList.toggle('active', t.dataset.tab === tabId);
+    });
+    document.querySelectorAll('#settingsModal .settings-tab-panel').forEach((p) => {
+        p.hidden = (p.id !== tabId);
+    });
+    if (tabId === 'tab-backend') loadInstalledBackends();
+}
+
+async function loadInstalledBackends() {
+    if (!el.backendList) return;
+    try {
+        const res = await api.listInstalledBackends();
+        if (res.ok && Array.isArray(res.backends)) {
+            installedBackends = res.backends;
+            renderInstalledBackends();
+        } else {
+            el.backendList.innerHTML = `<div class="backend-empty"><p class="muted">Failed to list backends: ${esc(res.error || 'Unknown error')}</p></div>`;
+            if (el.backendCount) el.backendCount.textContent = '';
+        }
+    } catch (err) {
+        el.backendList.innerHTML = `<div class="backend-empty"><p class="muted">Error: ${esc(err.message)}</p></div>`;
+        if (el.backendCount) el.backendCount.textContent = '';
+    }
+}
+
+function renderInstalledBackends() {
+    if (!el.backendList) return;
+    const total = installedBackends.length;
+    if (el.backendCount) el.backendCount.textContent = total ? `(${total})` : '';
+
+    if (!total) {
+        el.backendList.innerHTML = `
+            <div class="backend-empty">
+                <p class="muted">No backends found in your backends directory.</p>
+                <p class="muted" style="margin-top: 4px; font-size: 11px;">Use "Download Latest" or "Import release ZIP" to add a backend.</p>
+            </div>`;
+        return;
+    }
+
+    let html = '';
+    for (const b of installedBackends) {
+        const isActive = b.isActive;
+        const activeClass = isActive ? 'active' : '';
+        const badgeActive = isActive
+            ? '<span class="runtime-chip ok">● Current Active</span>'
+            : '<span class="runtime-chip neutral">Inactive</span>';
+        const badgeVariant = b.variant ? `<span class="runtime-chip gpu">${esc(b.variant)}</span>` : '';
+        const badgeExternal = b.isExternal ? '<span class="runtime-chip warn">External Link</span>' : '';
+        const validBadge = !b.isValid ? '<span class="runtime-chip error">No sd-server</span>' : '';
+
+        const sizeStr = b.size ? fmtBytes(b.size) : (b.isExternal ? 'External folder' : 'Unknown size');
+        const dateStr = b.mtime ? new Date(b.mtime).toLocaleDateString() : '';
+
+        html += `
+        <div class="backend-item ${activeClass}" data-backend-path="${esc(b.path)}">
+            <div class="backend-item-header">
+                <div class="backend-item-title-row">
+                    <span class="backend-item-name">${esc(b.name)}</span>
+                    ${badgeActive}
+                    ${badgeVariant}
+                    ${badgeExternal}
+                    ${validBadge}
+                </div>
+                <div class="backend-item-path" title="${esc(b.path)}">${esc(b.path)}</div>
+            </div>
+            <div class="backend-item-meta">
+                <span class="backend-meta-item">💾 ${esc(sizeStr)}</span>
+                ${dateStr ? `<span class="backend-meta-item">🕒 ${esc(dateStr)}</span>` : ''}
+                <span class="backend-meta-item">⚙ ${esc(b.serverPath ? (b.serverPath.split(/[/\\]/).pop()) : 'sd-server')}</span>
+            </div>
+            <div class="backend-item-actions">
+                ${isActive
+                    ? '<button class="btn btn-sm btn-primary" disabled>✔ Currently Active</button>'
+                    : `<button class="btn btn-sm" data-action="set-active" ${!b.isValid ? 'disabled' : ''}>Set as Active</button>`
+                }
+                <button class="btn btn-sm btn-ghost" data-action="open-folder" title="Open this backend folder">Open folder</button>
+                <button class="btn btn-sm btn-danger" data-action="delete" title="${b.isExternal ? 'Unlink this external backend' : 'Delete this backend from disk'}">${b.isExternal ? 'Unlink' : 'Delete'}</button>
+            </div>
+        </div>`;
+    }
+
+    el.backendList.innerHTML = html;
+
+    // Attach listeners
+    el.backendList.querySelectorAll('.backend-item').forEach((itemEl) => {
+        const targetPath = itemEl.dataset.backendPath;
+        const btnSetActive = itemEl.querySelector('[data-action="set-active"]');
+        if (btnSetActive) {
+            btnSetActive.addEventListener('click', async () => {
+                await setActiveBackendFromUi(targetPath);
+            });
+        }
+
+        const btnOpenFolder = itemEl.querySelector('[data-action="open-folder"]');
+        if (btnOpenFolder) {
+            btnOpenFolder.addEventListener('click', async () => {
+                await api.openBackendFolder(targetPath);
+            });
+        }
+
+        const btnDelete = itemEl.querySelector('[data-action="delete"]');
+        if (btnDelete) {
+            btnDelete.addEventListener('click', async () => {
+                await deleteBackendFromUi(targetPath);
+            });
+        }
+    });
+}
+
+async function setActiveBackendFromUi(targetPath) {
+    try {
+        setGenStatus('Switching active backend...', 'busy');
+        const res = await api.setActiveBackend(targetPath);
+        if (res.ok) {
+            settings.backendDir = targetPath;
+            if (res.serverPath && el.serverBinary) {
+                el.serverBinary.value = res.serverPath;
+            }
+            setGenStatus('Active backend updated.', 'done');
+            await loadInstalledBackends();
+            const state = await api.getBackendState();
+            backendState = state;
+            renderBackendState();
+            await loadRuntimeInfo(false);
+        } else {
+            setGenStatus(`Failed to set active backend: ${res.error}`, 'error');
+            alert(`Could not set backend: ${res.error}`);
+        }
+    } catch (err) {
+        setGenStatus(`Error: ${err.message}`, 'error');
+        alert(`Error: ${err.message}`);
+    }
+}
+
+async function deleteBackendFromUi(targetPath) {
+    const item = installedBackends.find((b) => b.path === targetPath);
+    const label = item ? item.name : targetPath;
+    const isExt = item && item.isExternal;
+    const confirmMsg = isExt
+        ? `Unlink external backend "${label}"? This will remove it from the app without deleting any files.`
+        : `Are you sure you want to delete backend "${label}"?\n\nThis will permanently delete the folder from disk:\n${targetPath}`;
+
+    if (!confirm(confirmMsg)) return;
+
+    try {
+        setGenStatus(`Deleting backend ${label}...`, 'busy');
+        const res = await api.deleteBackend(targetPath);
+        if (res.ok) {
+            setGenStatus('Backend deleted.', 'done');
+            await loadInstalledBackends();
+            const state = await api.getBackendState();
+            backendState = state;
+            renderBackendState();
+            await loadRuntimeInfo(false);
+        } else {
+            setGenStatus(`Failed to delete backend: ${res.error}`, 'error');
+            alert(`Failed to delete backend: ${res.error}`);
+        }
+    } catch (err) {
+        setGenStatus(`Error: ${err.message}`, 'error');
+        alert(`Error: ${err.message}`);
     }
 }
 
@@ -1676,6 +1855,8 @@ async function downloadAsset(asset, tag) {
         setGenStatus('Backend downloaded & installed.', 'done');
         el.serverBinary.value = res.serverPath;
         await saveSettingsFromUi();
+        await loadInstalledBackends();
+        await loadRuntimeInfo(false);
     } else {
         setGenStatus(`Download failed: ${res.error}`, 'error');
     }
@@ -1806,6 +1987,9 @@ function bindEvents() {
     el.btnImportZip.addEventListener('click', importZip);
     el.btnDownloadLatest.addEventListener('click', showLatestReleases);
     el.btnLinkFolder.addEventListener('click', linkBackendFolder);
+    if (el.btnOpenBackendsFolder) el.btnOpenBackendsFolder.addEventListener('click', () => api.openBackendsFolder());
+    if (el.btnRefreshBackends) el.btnRefreshBackends.addEventListener('click', () => loadInstalledBackends());
+    if (el.btnManageBackends) el.btnManageBackends.addEventListener('click', () => switchSettingsTab('tab-backend'));
     el.btnAddLora.addEventListener('click', addLoraSlot);
 
     // App data folder
@@ -1885,13 +2069,14 @@ function bindEvents() {
     });
 
     // Settings modal
-    el.btnSettings.addEventListener('click', () => { el.settingsModal.hidden = false; });
+    el.btnSettings.addEventListener('click', () => { el.settingsModal.hidden = false; loadInstalledBackends(); });
     el.btnSettingsClose.addEventListener('click', () => { el.settingsModal.hidden = true; });
     document.querySelectorAll('#settingsModal .settings-tab').forEach((tab) => {
         tab.addEventListener('click', () => {
             document.querySelectorAll('#settingsModal .settings-tab').forEach((t) => t.classList.remove('active'));
             document.querySelectorAll('#settingsModal .settings-tab-panel').forEach((p) => { p.hidden = true; });
             tab.classList.add('active');
+            if (tab.dataset.tab === 'tab-backend') loadInstalledBackends();
             const panel = document.getElementById(tab.dataset.tab);
             if (panel) panel.hidden = false;
         });
@@ -2397,6 +2582,7 @@ async function init() {
     await loadThemes();
     await applyTheme(settings.theme || 'neutral');
     await refreshModels();
+    await loadInstalledBackends();
     const state = await api.getBackendState();
     backendState = state;
     renderBackendState();

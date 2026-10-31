@@ -413,6 +413,7 @@
                             <div class="inline-controls">
                                 <input type="text" id="serverBinary" placeholder="Not installed" readonly />
                                 <button class="btn btn-sm" id="btnBrowseServer" title="Point to an existing sd-server">Browse</button>
+                                <button class="btn btn-sm btn-ghost" id="btnManageBackends" title="Switch or manage installed backends">Manage backends →</button>
                             </div>
                         </div>
                         <div class="field-grid">
@@ -444,11 +445,13 @@
 
                 <div class="settings-tab-panel" id="tab-backend" hidden>
                     <section class="card">
+                        <div class="card-subtitle">Install or Link Backend</div>
                         <div class="backend-buttons">
                             <button class="btn btn-primary" id="btnImportZip">Import release ZIP</button>
                             <button class="btn" id="btnDownloadLatest">Download Latest</button>
+                            <button class="btn link-folder-btn" id="btnLinkFolder" title="Use an already-extracted backend folder directly (no copying)">Link external folder…</button>
+                            <button class="btn btn-ghost" id="btnOpenBackendsFolder" title="Open the managed backends folder in Explorer">Open backends folder</button>
                         </div>
-                        <button class="btn link-folder-btn" id="btnLinkFolder" title="Use an already-extracted backend folder directly (no copying)">Link extracted backend folder…</button>
                         <div class="download-area" id="downloadArea" hidden>
                             <p class="download-label" id="downloadLabel">Select an asset</p>
                             <div id="assetList" class="asset-list"></div>
@@ -456,6 +459,21 @@
                         <div class="progress-wrap" id="progressWrap" hidden>
                             <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
                             <span class="progress-text" id="progressText"></span>
+                        </div>
+                    </section>
+
+                    <section class="card" style="margin-top: 14px;">
+                        <div class="lora-header">
+                            <div>
+                                <h3 class="card-title" style="margin: 0; font-size: 14px;">Installed Backends <span class="gallery-count" id="backendCount"></span></h3>
+                                <p class="field-note" style="margin: 2px 0 0 0;">Switch active backend or delete any installed release from disk.</p>
+                            </div>
+                            <button class="btn btn-sm btn-ghost" id="btnRefreshBackends" title="Refresh backends list">↻ Refresh</button>
+                        </div>
+                        <div class="backend-list" id="backendList">
+                            <div class="backend-empty">
+                                <p class="muted">Scanning installed backends...</p>
+                            </div>
                         </div>
                     </section>
                 </div>

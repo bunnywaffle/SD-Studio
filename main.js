@@ -565,6 +565,55 @@ ipcMain.handle('theme:openDir', () => {
 
 ipcMain.handle('backend:state', () => backend.getState());
 
+ipcMain.handle('backend:listInstalled', async () => {
+    try {
+        const list = backend.listInstalledBackends();
+        return { ok: true, backends: list };
+    } catch (err) {
+        return { ok: false, error: err.message, backends: [] };
+    }
+});
+
+ipcMain.handle('backend:setActive', async (e, dir) => {
+    try {
+        const res = backend.setActiveBackend(dir);
+        return res;
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+});
+
+ipcMain.handle('backend:delete', async (e, dir) => {
+    try {
+        const res = await backend.deleteBackend(dir);
+        return res;
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+});
+
+ipcMain.handle('backend:openRoot', async () => {
+    try {
+        const root = backend.getBackendRoot();
+        await shell.openPath(root);
+        return { ok: true, path: root };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+});
+
+ipcMain.handle('backend:openFolder', async (e, dir) => {
+    try {
+        if (!dir || !fs.existsSync(dir)) {
+            return { ok: false, error: 'Directory does not exist' };
+        }
+        await shell.openPath(dir);
+        return { ok: true, path: dir };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+});
+
 ipcMain.handle('backend:listReleaseAssets', async (e, { page } = {}) => {
     try {
         const rels = await releases.getReleases(page || 1, 5);
