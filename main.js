@@ -52,6 +52,7 @@ function settingsRefreshApiHook() {
 
 let readinessTimer = null;
 let lastReadiness = false;
+let pingInFlight = false;
 
 function stopReadinessPoll() {
     if (readinessTimer) {
@@ -59,11 +60,14 @@ function stopReadinessPoll() {
         readinessTimer = null;
     }
     lastReadiness = false;
+    pingInFlight = false;
 }
 
 function startReadinessPoll() {
     stopReadinessPoll();
     readinessTimer = setInterval(async () => {
+        if (pingInFlight) return;
+        pingInFlight = true;
         try {
             const ok = await api.ping();
             if (ok && !lastReadiness) {
@@ -79,6 +83,8 @@ function startReadinessPoll() {
             }
         } catch (err) {
             // ignore, keep polling
+        } finally {
+            pingInFlight = false;
         }
     }, 1000);
 }
@@ -107,7 +113,8 @@ function createWindow() {
         minWidth: 1100,
         minHeight: 700,
         title: 'SD.cpp Studio',
-        backgroundColor: '#0f1115',
+        backgroundColor: '#14161a',
+        show: false,
         icon: path.join(__dirname, 'build', 'icon.png'),
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
@@ -116,6 +123,10 @@ function createWindow() {
             sandbox: false,
         },
         autoHideMenuBar: true,
+    });
+
+    mainWindow.once('ready-to-show', () => {
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show();
     });
 
     mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));

@@ -130,6 +130,7 @@ class BackendManager {
         this.runningUrl = null;
         this.autoStartPending = false;
         this.listeners = [];
+        this._sizeCache = new Map();
         const initDir = this.settings.get('backendDir');
         if (initDir && fs.existsSync(initDir)) {
             const exes = findServerExecutable(initDir);
@@ -273,7 +274,9 @@ class BackendManager {
             return 'Generic';
         };
 
-        const computeFolderSize = (folder) => {
+        const computeFolderSize = (folder, mtimeMs) => {
+            const cached = this._sizeCache && this._sizeCache.get(folder);
+            if (cached && cached.mtimeMs === mtimeMs) return cached.size;
             let total = 0;
             try {
                 const stack = [folder];
@@ -287,6 +290,7 @@ class BackendManager {
                     }
                 }
             } catch {}
+            if (this._sizeCache) this._sizeCache.set(folder, { mtimeMs, size: total });
             return total;
         };
 
@@ -326,7 +330,7 @@ class BackendManager {
                     isActive: fullNorm === activeNorm,
                     isExternal: false,
                     variant: detectVariant(entry.name, full),
-                    size: computeFolderSize(full),
+                    size: computeFolderSize(full, stat ? stat.mtimeMs : 0),
                     mtime: stat ? stat.mtimeMs : 0
                 });
             }
@@ -410,6 +414,7 @@ class BackendManager {
             if (fs.existsSync(targetPath)) {
                 this.log('info', `Deleting backend folder: ${targetPath}`);
                 fs.rmSync(targetPath, { recursive: true, force: true });
+                if (this._sizeCache) this._sizeCache.delete(targetPath);
             }
         }
 

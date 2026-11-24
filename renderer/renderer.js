@@ -204,12 +204,42 @@ function fmtBytes(bytes) {
     return `${v.toFixed(i ? 1 : 0)} ${units[i]}`;
 }
 
-function logLine(entry) {
+const MAX_LOG_DOM_NODES = 300;
+let logScrollPending = false;
+
+function scheduleLogScroll() {
+    if (logScrollPending || !el.logBox) return;
+    logScrollPending = true;
+    requestAnimationFrame(() => {
+        logScrollPending = false;
+        if (el.logBox) el.logBox.scrollTop = el.logBox.scrollHeight;
+    });
+}
+
+function createLogNode(entry) {
     const div = document.createElement('div');
     div.className = `log-line ${entry.level || ''}`;
     const time = new Date(entry.ts).toLocaleTimeString();
     div.textContent = `[${time}] ${entry.message}`;
-    el.logBox.appendChild(div);
+    return div;
+}
+
+function logLine(entry) {
+    if (!el.logBox) return;
+    el.logBox.appendChild(createLogNode(entry));
+    while (el.logBox.childElementCount > MAX_LOG_DOM_NODES) {
+        el.logBox.removeChild(el.logBox.firstElementChild);
+    }
+    scheduleLogScroll();
+}
+
+function renderLogsBatch(entries) {
+    if (!el.logBox || !Array.isArray(entries) || !entries.length) return;
+    const recent = entries.slice(-MAX_LOG_DOM_NODES);
+    const frag = document.createDocumentFragment();
+    for (const entry of recent) frag.appendChild(createLogNode(entry));
+    el.logBox.innerHTML = '';
+    el.logBox.appendChild(frag);
     el.logBox.scrollTop = el.logBox.scrollHeight;
 }
 
@@ -580,9 +610,34 @@ async function ensureGalleryDir() {
     }
 }
 
+function base64ToUint8(b64) {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+}
+
+function getItemSrc(item) {
+    return item.objectUrl || (item.imageB64 ? `data:image/png;base64,${item.imageB64}` : '');
+}
+
+async function getItemBytes(item) {
+    if (item.objectUrl) {
+        const res = await fetch(item.objectUrl);
+        return new Uint8Array(await res.arrayBuffer());
+    }
+    return base64ToUint8(item.imageB64);
+}
+
 async function addToGallery(imageB64, meta) {
     const id = Date.now() + Math.random().toString(36).slice(2, 7);
-    const item = { id, imageB64, meta, savedPath: null };
+    let objectUrl = null;
+    try {
+        const bytes = base64ToUint8(imageB64);
+        const blob = new Blob([bytes], { type: 'image/png' });
+        objectUrl = URL.createObjectURL(blob);
+    } catch {}
+    const item = { id, objectUrl, imageB64: objectUrl ? null : imageB64, meta, savedPath: null };
     galleryItems.push(item);
     currentBigIndex = galleryItems.length - 1;
     if (galleryViewMode === 'big') {
@@ -590,13 +645,6 @@ async function addToGallery(imageB64, meta) {
     } else {
         renderGallery();
     }
-}
-
-function base64ToUint8(b64) {
-    const bin = atob(b64);
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return bytes;
 }
 
 function setGalleryViewMode(mode) {
@@ -637,7 +685,7 @@ function renderGalleryBig() {
     if (!item) return;
 
     if (el.galleryBigImg) {
-        el.galleryBigImg.src = `data:image/png;base64,${item.imageB64}`;
+        el.galleryBigImg.src = getItemSrc(item);
     }
     if (el.galleryBigIndex) {
         el.galleryBigIndex.textContent = `${currentBigIndex + 1} / ${total}`;
@@ -678,7 +726,7 @@ function renderGalleryBig() {
             if (item.savedPath) return;
             const fp = await api.saveImage({ defaultName: 'generated.png' });
             if (fp) {
-                const buf = base64ToUint8(item.imageB64);
+                const buf = await getItemBytes(item);
                 await api.writeFile(fp, buf);
                 item.savedPath = fp;
                 renderGalleryBig();
@@ -720,11 +768,15 @@ function renderGallery() {
         return;
     }
     el.gallery.innerHTML = '';
-    for (const item of galleryItems.slice().reverse()) {
+    const frag = document.createDocumentFragment();
+    for (let i = galleryItems.length - 1; i >= 0; i--) {
+        const item = galleryItems[i];
         const div = document.createElement('div');
         div.className = 'gallery-item';
         const img = document.createElement('img');
-        img.src = `data:image/png;base64,${item.imageB64}`;
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        img.src = getItemSrc(item);
         img.alt = 'generated';
         img.style.cursor = 'pointer';
         img.title = 'Click to view in Big Picture';
@@ -766,7 +818,7 @@ function renderGallery() {
             if (item.savedPath) return;
             const fp = await api.saveImage({ defaultName: 'generated.png' });
             if (fp) {
-                const buf = base64ToUint8(item.imageB64);
+                const buf = await getItemBytes(item);
                 await api.writeFile(fp, buf);
                 item.savedPath = fp;
                 renderGallery();
@@ -774,8 +826,9 @@ function renderGallery() {
             }
         });
         div.appendChild(btnSave);
-        el.gallery.appendChild(div);
+        frag.appendChild(div);
     }
+    el.gallery.appendChild(frag);
 }
 
 function openPreview(item) {
@@ -786,7 +839,7 @@ function openPreview(item) {
     const box = document.createElement('div');
     box.className = 'preview-box';
     const img = document.createElement('img');
-    img.src = `data:image/png;base64,${item.imageB64}`;
+    img.src = getItemSrc(item);
     const actions = document.createElement('div');
     actions.className = 'preview-actions';
     const btnClose = document.createElement('button');
@@ -798,7 +851,7 @@ function openPreview(item) {
     btnSave.addEventListener('click', async () => {
         const fp = await api.saveImage({ defaultName: 'generated.png' });
         if (fp) {
-            await api.writeFile(fp, base64ToUint8(item.imageB64));
+            await api.writeFile(fp, await getItemBytes(item));
             btnSave.textContent = 'Saved';
         }
     });
@@ -1147,8 +1200,11 @@ async function generate() {
     }
 }
 
+let isPollingJob = false;
+
 async function pollJob() {
-    if (!activeJob) return;
+    if (!activeJob || isPollingJob) return;
+    isPollingJob = true;
     try {
         const res = await api.getJob(activeJob.id);
         if (!res.ok) {
@@ -1186,6 +1242,8 @@ async function pollJob() {
         stopPolling();
         setGenStatus(`Poll error: ${err.message}`, 'error');
         setBusy(false);
+    } finally {
+        isPollingJob = false;
     }
 }
 
@@ -2204,16 +2262,31 @@ function bindEvents() {
             }
         });
     }
+    // Ctrl/Cmd + Enter in prompts triggers Generate
+    for (const pEl of [el.prompt, el.negativePrompt]) {
+        if (!pEl) continue;
+        pEl.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !el.btnGenerate.disabled) {
+                e.preventDefault();
+                generate();
+            }
+        });
+    }
+
     window.addEventListener('keydown', (e) => {
-        if (galleryViewMode === 'big') {
+        if (e.key === 'Escape') {
+            const preview = document.querySelector('.preview-overlay');
+            if (preview) { preview.remove(); return; }
+            if (el.settingsModal && !el.settingsModal.hidden) { el.settingsModal.hidden = true; return; }
+            if (el.modelManagerModal && !el.modelManagerModal.hidden) { closeModelManager(); return; }
+            if (galleryViewMode === 'big') { setGalleryViewMode('grid'); return; }
+        } else if (galleryViewMode === 'big') {
             if (e.key === 'ArrowLeft' && currentBigIndex > 0) {
                 currentBigIndex--;
                 renderGalleryBig();
             } else if (e.key === 'ArrowRight' && currentBigIndex < galleryItems.length - 1) {
                 currentBigIndex++;
                 renderGalleryBig();
-            } else if (e.key === 'Escape') {
-                setGalleryViewMode('grid');
             }
         }
     });
@@ -2241,6 +2314,11 @@ function bindEvents() {
 
     // Clear gallery
     el.btnClearGallery.addEventListener('click', () => {
+        for (const item of galleryItems) {
+            if (item.objectUrl) {
+                try { URL.revokeObjectURL(item.objectUrl); } catch {}
+            }
+        }
         galleryItems = [];
         renderGallery();
         renderGalleryBig();
@@ -2256,9 +2334,13 @@ function bindEvents() {
         el.steps, el.cfgScale, el.seed, el.batchCount,
         el.sampler, el.scheduler, el.outputFormat,
     ];
+    let saveDebounceTimer = null;
+    const saveSettingsDebounced = () => {
+        clearTimeout(saveDebounceTimer);
+        saveDebounceTimer = setTimeout(() => saveSettingsFromUi(), 250);
+    };
     for (const f of persistFields) {
-        const ev = f.type === 'checkbox' ? 'change' : 'change';
-        f.addEventListener(ev, () => saveSettingsFromUi());
+        f.addEventListener('change', saveSettingsDebounced);
     }
 }
 
@@ -2586,7 +2668,7 @@ async function init() {
     const state = await api.getBackendState();
     backendState = state;
     renderBackendState();
-    for (const entry of state.logs || []) logLine(entry);
+    renderLogsBatch(state.logs || []);
     if (backendState.status === 'running') {
         loadCapabilities();
     }
