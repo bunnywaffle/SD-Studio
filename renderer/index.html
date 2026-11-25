@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy"
-          content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'" />
+          content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' blob:" />
     <title>SD.cpp Studio</title>
     <link rel="stylesheet" href="styles.css" />
 </head>
@@ -335,12 +335,16 @@
                 <div class="lora-header">
                     <h2 class="card-title">✨ Gallery <span class="gallery-count" id="galleryCount"></span></h2>
                     <div class="gallery-actions">
+                        <label class="inline" style="font-size: 11.5px; color: var(--text-dim); margin-right: 4px;" title="Automatically save images to your output folder upon generation">
+                            <input type="checkbox" id="genAutoSave" />
+                            Auto-save
+                        </label>
                         <div class="gallery-view-toggle">
                             <button class="btn btn-sm btn-ghost active" id="btnGalleryGrid" title="Thumbnail Grid view">▞ Grid</button>
                             <button class="btn btn-sm btn-ghost" id="btnGalleryBig" title="Recent generation / Big picture view">🖼 Big Picture</button>
                         </div>
                         <button class="btn btn-sm btn-ghost" id="btnClearGallery" title="Clear gallery">Clear</button>
-                        <button class="btn btn-sm btn-ghost" id="btnOpenGalleryDir" title="Open gallery folder">Open</button>
+                        <button class="btn btn-sm btn-ghost" id="btnOpenGalleryDir" title="Open output folder (or pick one)">Open</button>
                     </div>
                 </div>
                 <!-- Thumbnail Grid View -->
@@ -439,6 +443,26 @@
                                 <input type="checkbox" id="autoStart" />
                                 Auto-start server on launch
                             </label>
+                        </div>
+                    </section>
+
+                    <section class="card" style="margin-top: 14px;">
+                        <div class="card-subtitle">Output &amp; Auto-Save</div>
+                        <div class="field-row">
+                            <label>Output folder <span class="hint">(where saved &amp; auto-saved images go)</span></label>
+                            <div class="inline-controls">
+                                <input type="text" id="outputDirInput" placeholder="Default (Sd Data/outputs)" readonly />
+                                <button class="btn btn-sm" id="btnOutputDirBrowse" title="Choose output folder">Browse</button>
+                                <button class="btn btn-sm btn-ghost" id="btnOutputDirOpen" title="Open output folder">Open</button>
+                                <button class="btn btn-sm btn-ghost" id="btnOutputDirReset" title="Reset to default outputs folder">Default</button>
+                            </div>
+                        </div>
+                        <div class="field-row">
+                            <label class="inline">
+                                <input type="checkbox" id="settingAutoSave" />
+                                <strong>Auto-save upon generation complete</strong>
+                            </label>
+                            <p class="field-note">Automatically saves each generated image to your output folder named after the first few words of the prompt and date (e.g. <code>cozy_cabin_snowy_2026-11-25_211030.png</code>).</p>
                         </div>
                     </section>
                 </div>

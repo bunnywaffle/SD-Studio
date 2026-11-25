@@ -65,8 +65,10 @@ class SettingsStore {
             threads: -1,
             sageAttn: false,
 
-            // Gallery view mode ('grid' | 'big')
-            galleryViewMode: 'grid'
+            // Gallery view mode ('grid' | 'big') and Output / Auto-save
+            galleryViewMode: 'grid',
+            outputDir: '',
+            autoSave: false
         };
         this.load();
     }

@@ -832,11 +832,22 @@ ipcMain.handle('dialog:pickDirectory', async (e, opts) => {
     return res.filePaths[0];
 });
 
-ipcMain.handle('dialog:saveImage', async (e, { defaultName }) => {
+ipcMain.handle('dialog:saveImage', async (e, { defaultName, defaultDir, ext } = {}) => {
+    const cleanExt = (ext || 'png').replace(/^\./, '').toLowerCase();
+    const filterMap = {
+        png: { name: 'PNG image', extensions: ['png'] },
+        jpg: { name: 'JPEG image', extensions: ['jpg', 'jpeg'] },
+        jpeg: { name: 'JPEG image', extensions: ['jpg', 'jpeg'] },
+        webp: { name: 'WebP image', extensions: ['webp'] },
+    };
+    const primaryFilter = filterMap[cleanExt] || filterMap.png;
+    const baseName = defaultName || `generated.${cleanExt}`;
+    const targetDir = defaultDir && fs.existsSync(defaultDir) ? defaultDir : '';
+    const defaultPath = targetDir ? path.join(targetDir, baseName) : baseName;
     const res = await dialog.showSaveDialog(mainWindow, {
         title: 'Save generated image',
-        defaultPath: defaultName || 'generated.png',
-        filters: [{ name: 'PNG image', extensions: ['png'] }],
+        defaultPath,
+        filters: [primaryFilter, { name: 'All images', extensions: ['png', 'jpg', 'jpeg', 'webp'] }],
     });
     if (res.canceled || !res.filePath) {
         return null;
@@ -888,9 +899,34 @@ ipcMain.handle('data:reset', () => {
 
 ipcMain.handle('fs:writeFile', async (e, { filePath, data }) => {
     try {
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
         const buf = Buffer.from(data);
         fs.writeFileSync(filePath, buf);
-        return { ok: true };
+        return { ok: true, filePath };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+});
+
+ipcMain.handle('output:defaultDir', () => {
+    const dir = path.join(app.getPath('userData'), 'outputs');
+    fs.mkdirSync(dir, { recursive: true });
+    return dir;
+});
+
+ipcMain.handle('fs:saveUniqueFile', async (e, { dir, fileName, data }) => {
+    try {
+        const targetDir = dir && String(dir).trim() ? String(dir).trim() : path.join(app.getPath('userData'), 'outputs');
+        fs.mkdirSync(targetDir, { recursive: true });
+        const ext = path.extname(fileName) || '.png';
+        const stem = path.basename(fileName, ext);
+        let candidate = path.join(targetDir, `${stem}${ext}`);
+        for (let i = 2; fs.existsSync(candidate); i++) {
+            candidate = path.join(targetDir, `${stem}_${i}${ext}`);
+        }
+        const buf = Buffer.from(data);
+        fs.writeFileSync(candidate, buf);
+        return { ok: true, filePath: candidate };
     } catch (err) {
         return { ok: false, error: err.message };
     }

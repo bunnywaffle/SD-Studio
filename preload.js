@@ -59,6 +59,8 @@ contextBridge.exposeInMainWorld('sdcpp', {
     saveImage: (opts) => ipcRenderer.invoke('dialog:saveImage', opts),
     openPath: (target) => ipcRenderer.invoke('shell:openPath', target),
     writeFile: (filePath, data) => ipcRenderer.invoke('fs:writeFile', { filePath, data }),
+    saveUniqueFile: (opts) => ipcRenderer.invoke('fs:saveUniqueFile', opts),
+    getDefaultOutputDir: () => ipcRenderer.invoke('output:defaultDir'),
     checkModelFiles: (paths) => ipcRenderer.invoke('models:checkFiles', paths),
 
     // generation

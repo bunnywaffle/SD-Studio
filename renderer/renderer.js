@@ -128,6 +128,12 @@ const el = {
     gallery: document.getElementById('gallery'),
     btnClearGallery: document.getElementById('btnClearGallery'),
     btnOpenGalleryDir: document.getElementById('btnOpenGalleryDir'),
+    genAutoSave: document.getElementById('genAutoSave'),
+    outputDirInput: document.getElementById('outputDirInput'),
+    btnOutputDirBrowse: document.getElementById('btnOutputDirBrowse'),
+    btnOutputDirOpen: document.getElementById('btnOutputDirOpen'),
+    btnOutputDirReset: document.getElementById('btnOutputDirReset'),
+    settingAutoSave: document.getElementById('settingAutoSave'),
 
     modelManagerModal: document.getElementById('modelManagerModal'),
     btnOpenModelManager: document.getElementById('btnOpenModelManager'),
@@ -598,16 +604,36 @@ function handleStyleChange() {
     setGenStatus(style ? `Style: ${style.name}` : '', 'done');
 }
 
-// ---------- Gallery ----------
-async function ensureGalleryDir() {
-    if (galleryDir) return galleryDir;
-    try {
-        const dir = await api.pickDirectory({ title: 'Choose a folder for generated images (optional). If you cancel, images stay in-app only.' });
-        galleryDir = dir;
-        return dir;
-    } catch {
-        return null;
+// ---------- Gallery & Output Saving ----------
+function buildSmartFilename(meta, extOverride) {
+    const rawExt = extOverride || (meta && meta.outputFormat) || settings.outputFormat || (el.outputFormat && el.outputFormat.value) || 'png';
+    const ext = rawExt === 'jpeg' ? 'jpg' : rawExt;
+    const rawPrompt = (meta && meta.prompt) ? String(meta.prompt) : '';
+    const words = rawPrompt
+        .replace(/[^a-zA-Z0-9\s]+/g, ' ')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 5);
+    const slug = (words.length ? words.join('_') : 'generated').toLowerCase().slice(0, 44);
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const stamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+    return `${slug}_${stamp}.${ext}`;
+}
+
+async function getEffectiveOutputDir() {
+    if (settings.outputDir && String(settings.outputDir).trim()) {
+        return String(settings.outputDir).trim();
     }
+    return api.getDefaultOutputDir();
+}
+
+async function ensureGalleryDir() {
+    if (settings.outputDir && String(settings.outputDir).trim()) {
+        return String(settings.outputDir).trim();
+    }
+    return api.getDefaultOutputDir();
 }
 
 function base64ToUint8(b64) {
@@ -622,6 +648,9 @@ function getItemSrc(item) {
 }
 
 async function getItemBytes(item) {
+    if (item.blob) {
+        return new Uint8Array(await item.blob.arrayBuffer());
+    }
     if (item.objectUrl) {
         const res = await fetch(item.objectUrl);
         return new Uint8Array(await res.arrayBuffer());
@@ -629,21 +658,73 @@ async function getItemBytes(item) {
     return base64ToUint8(item.imageB64);
 }
 
+async function saveItemWithDialog(item) {
+    if (!item || item.savedPath) return false;
+    const ext = (item.meta && item.meta.outputFormat) || settings.outputFormat || 'png';
+    const defaultName = buildSmartFilename(item.meta, ext);
+    const defaultDir = settings.outputDir && String(settings.outputDir).trim() ? String(settings.outputDir).trim() : await api.getDefaultOutputDir();
+    const fp = await api.saveImage({ defaultName, defaultDir, ext });
+    if (!fp) return false;
+    try {
+        const buf = await getItemBytes(item);
+        const res = await api.writeFile(fp, buf);
+        if (!res || !res.ok) {
+            setGenStatus(`Save failed: ${(res && res.error) || 'Could not write file'}`, 'error');
+            return false;
+        }
+        item.savedPath = res.filePath || fp;
+        setGenStatus(`Saved: ${item.savedPath.split(/[/\\]/).pop()}`, 'done');
+        renderGallery();
+        if (galleryViewMode === 'big') renderGalleryBig();
+        return true;
+    } catch (err) {
+        setGenStatus(`Save failed: ${err.message}`, 'error');
+        return false;
+    }
+}
+
+async function autoSaveItem(item) {
+    if (!item || item.savedPath) return;
+    try {
+        const ext = (item.meta && item.meta.outputFormat) || settings.outputFormat || 'png';
+        const fileName = buildSmartFilename(item.meta, ext);
+        const dir = await getEffectiveOutputDir();
+        const buf = await getItemBytes(item);
+        const res = await api.saveUniqueFile({ dir, fileName, data: buf });
+        if (res && res.ok) {
+            item.savedPath = res.filePath;
+            setGenStatus(`Auto-saved: ${res.filePath.split(/[/\\]/).pop()}`, 'done');
+            renderGallery();
+            if (galleryViewMode === 'big') renderGalleryBig();
+        } else {
+            setGenStatus(`Auto-save failed: ${(res && res.error) || 'Write error'}`, 'error');
+        }
+    } catch (err) {
+        setGenStatus(`Auto-save failed: ${err.message}`, 'error');
+    }
+}
+
 async function addToGallery(imageB64, meta) {
     const id = Date.now() + Math.random().toString(36).slice(2, 7);
     let objectUrl = null;
+    let blob = null;
     try {
         const bytes = base64ToUint8(imageB64);
-        const blob = new Blob([bytes], { type: 'image/png' });
+        const fmt = (meta && meta.outputFormat) || settings.outputFormat || 'png';
+        const mime = fmt === 'webp' ? 'image/webp' : (fmt === 'jpeg' || fmt === 'jpg') ? 'image/jpeg' : 'image/png';
+        blob = new Blob([bytes], { type: mime });
         objectUrl = URL.createObjectURL(blob);
     } catch {}
-    const item = { id, objectUrl, imageB64: objectUrl ? null : imageB64, meta, savedPath: null };
+    const item = { id, blob, objectUrl, imageB64: objectUrl ? null : imageB64, meta, savedPath: null };
     galleryItems.push(item);
     currentBigIndex = galleryItems.length - 1;
     if (galleryViewMode === 'big') {
         renderGalleryBig();
     } else {
         renderGallery();
+    }
+    if (settings.autoSave) {
+        await autoSaveItem(item);
     }
 }
 
@@ -722,17 +803,7 @@ function renderGalleryBig() {
     if (el.btnBigSave) {
         el.btnBigSave.textContent = item.savedPath ? '✓ Saved' : '💾 Save Image';
         el.btnBigSave.disabled = !!item.savedPath;
-        el.btnBigSave.onclick = async () => {
-            if (item.savedPath) return;
-            const fp = await api.saveImage({ defaultName: 'generated.png' });
-            if (fp) {
-                const buf = await getItemBytes(item);
-                await api.writeFile(fp, buf);
-                item.savedPath = fp;
-                renderGalleryBig();
-                renderGallery();
-            }
-        };
+        el.btnBigSave.onclick = async () => { await saveItemWithDialog(item); };
     }
 
     if (el.btnBigCopyPrompt) {
@@ -813,18 +884,7 @@ function renderGallery() {
         btnSave.className = 'save-badge';
         btnSave.textContent = item.savedPath ? 'Saved' : 'Save';
         btnSave.disabled = !!item.savedPath;
-        btnSave.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            if (item.savedPath) return;
-            const fp = await api.saveImage({ defaultName: 'generated.png' });
-            if (fp) {
-                const buf = await getItemBytes(item);
-                await api.writeFile(fp, buf);
-                item.savedPath = fp;
-                renderGallery();
-                if (galleryViewMode === 'big') renderGalleryBig();
-            }
-        });
+        btnSave.addEventListener('click', async (e) => { e.stopPropagation(); await saveItemWithDialog(item); });
         div.appendChild(btnSave);
         frag.appendChild(div);
     }
@@ -848,11 +908,12 @@ function openPreview(item) {
     const btnSave = document.createElement('button');
     btnSave.className = 'btn btn-primary';
     btnSave.textContent = 'Save...';
+    btnSave.textContent = item.savedPath ? 'Saved' : 'Save...';
+    btnSave.disabled = !!item.savedPath;
     btnSave.addEventListener('click', async () => {
-        const fp = await api.saveImage({ defaultName: 'generated.png' });
-        if (fp) {
-            await api.writeFile(fp, await getItemBytes(item));
+        if (await saveItemWithDialog(item)) {
             btnSave.textContent = 'Saved';
+            btnSave.disabled = true;
         }
     });
     actions.appendChild(btnClose);
@@ -1278,6 +1339,7 @@ function handleCompletion(job) {
         scheduler: (payloadForLastJob && payloadForLastJob.sample_params && payloadForLastJob.sample_params.scheduler) || 'discrete',
         seed: (payloadForLastJob && payloadForLastJob.seed) != null ? payloadForLastJob.seed : -1,
         vaeTiling: !!(payloadForLastJob && payloadForLastJob.vae_tiling_params && payloadForLastJob.vae_tiling_params.enabled),
+        outputFormat: (payloadForLastJob && payloadForLastJob.output_format) || (el.outputFormat && el.outputFormat.value) || 'png',
         elapsed: elapsed,
         job: job
     };
@@ -1965,6 +2027,8 @@ function collectSettingsFromUi() {
         disablePrefetch: el.perfDisablePrefetch ? el.perfDisablePrefetch.checked : (settings.disablePrefetch || false),
         disableSegmentedCompute: el.perfDisableSegmentedCompute ? el.perfDisableSegmentedCompute.checked : (settings.disableSegmentedCompute || false),
         galleryViewMode: galleryViewMode || settings.galleryViewMode || 'grid',
+        outputDir: el.outputDirInput ? el.outputDirInput.value.trim() : (settings.outputDir || ''),
+        autoSave: el.settingAutoSave ? el.settingAutoSave.checked : !!settings.autoSave,
     };
 }
 
@@ -2023,6 +2087,9 @@ function applySettingsToUi() {
     if (settings.galleryViewMode) {
         setGalleryViewMode(settings.galleryViewMode);
     }
+    if (el.outputDirInput) el.outputDirInput.value = settings.outputDir || '';
+    if (el.settingAutoSave) el.settingAutoSave.checked = !!settings.autoSave;
+    if (el.genAutoSave) el.genAutoSave.checked = !!settings.autoSave;
 
     if (Array.isArray(settings.loraSlots)) {
         loraSlots = settings.loraSlots.map((s) => ({
@@ -2327,6 +2394,45 @@ function bindEvents() {
         const dir = await ensureGalleryDir();
         if (dir) await api.openPath(dir);
     });
+
+    const syncAutoSave = async (val) => {
+        settings.autoSave = !!val;
+        if (el.genAutoSave) el.genAutoSave.checked = !!val;
+        if (el.settingAutoSave) el.settingAutoSave.checked = !!val;
+        await api.setSettings({ autoSave: !!val });
+        setGenStatus(`Auto-save ${val ? 'enabled' : 'disabled'}`, 'done');
+    };
+    if (el.genAutoSave) {
+        el.genAutoSave.addEventListener('change', () => syncAutoSave(el.genAutoSave.checked));
+    }
+    if (el.settingAutoSave) {
+        el.settingAutoSave.addEventListener('change', () => syncAutoSave(el.settingAutoSave.checked));
+    }
+    if (el.btnOutputDirBrowse) {
+        el.btnOutputDirBrowse.addEventListener('click', async () => {
+            const dir = await api.pickDirectory({ title: 'Select output folder for saved images' });
+            if (dir) {
+                settings.outputDir = dir;
+                if (el.outputDirInput) el.outputDirInput.value = dir;
+                await api.setSettings({ outputDir: dir });
+                setGenStatus('Output folder updated.', 'done');
+            }
+        });
+    }
+    if (el.btnOutputDirOpen) {
+        el.btnOutputDirOpen.addEventListener('click', async () => {
+            const dir = await getEffectiveOutputDir();
+            if (dir) await api.openPath(dir);
+        });
+    }
+    if (el.btnOutputDirReset) {
+        el.btnOutputDirReset.addEventListener('click', async () => {
+            settings.outputDir = '';
+            if (el.outputDirInput) el.outputDirInput.value = '';
+            await api.setSettings({ outputDir: '' });
+            setGenStatus('Output folder reset to default.', 'done');
+        });
+    }
 
     // persist on change (backend + auto-saved generation parameters)
     const persistFields = [
