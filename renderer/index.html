@@ -504,7 +504,16 @@
 
                 <div class="settings-tab-panel" id="tab-performance" hidden>
                     <section class="card">
-                        <div class="card-subtitle">Performance &amp; Memory Optimizations (from stable-diffusion.cpp performance guide)</div>
+                        <div class="card-subtitle">Performance &amp; Low-VRAM Optimizations (restart server to apply)</div>
+                        <div class="field-row" style="margin-bottom: 12px;">
+                            <label>Quick Hardware Presets</label>
+                            <div class="inline-controls" style="flex-wrap: wrap;">
+                                <button type="button" class="btn btn-sm" id="btnPresetBalanced" title="Default balanced settings">Balanced</button>
+                                <button type="button" class="btn btn-sm" id="btnPresetLowVram" title="4–8 GB VRAM: Flash Attn + VAE Tiling + Offload to CPU + Text Encoder on CPU">Low VRAM (4–8 GB)</button>
+                                <button type="button" class="btn btn-sm" id="btnPresetUltraLow" title="≤4 GB VRAM / Low RAM: All CPU offloads + Disk params + mmap + VAE Tiling">Ultra-Low VRAM / RAM</button>
+                                <button type="button" class="btn btn-sm" id="btnPresetCpuOnly" title="No GPU: Run all modules on CPU + mmap + VAE Tiling">CPU-Only PC</button>
+                            </div>
+                        </div>
                         
                         <div class="field-grid">
                             <div class="field-row">
@@ -651,6 +660,77 @@
                                 Disable Segmented Compute <span class="hint">(--disable-segmented-compute)</span>
                             </label>
                             <p class="field-note">Force monolithic execution even when graph segmentation is triggered.</p>
+                        </div>
+                    </section>
+
+                    <section class="card" style="margin-top: 14px;">
+                        <div class="card-subtitle">Low-End GPU &amp; Low-RAM PC Options</div>
+
+                        <div class="field-grid">
+                            <div class="field-row">
+                                <label class="inline">
+                                    <input type="checkbox" id="perfTeOnCpu" />
+                                    Text Encoder / CLIP on CPU <span class="hint">(--backend te=cpu)</span>
+                                </label>
+                                <p class="field-note">Saves 1–4 GB VRAM on FLUX, SDXL, and Qwen/MOSS.</p>
+                            </div>
+
+                            <div class="field-row">
+                                <label class="inline">
+                                    <input type="checkbox" id="perfVaeOnCpu" />
+                                    VAE on CPU <span class="hint">(--backend vae=cpu)</span>
+                                </label>
+                                <p class="field-note">Prevents VRAM spikes during final image decode.</p>
+                            </div>
+                        </div>
+
+                        <div class="field-grid">
+                            <div class="field-row">
+                                <label class="inline">
+                                    <input type="checkbox" id="perfControlNetOnCpu" />
+                                    ControlNet on CPU <span class="hint">(--backend controlnet=cpu)</span>
+                                </label>
+                            </div>
+
+                            <div class="field-row">
+                                <label class="inline">
+                                    <input type="checkbox" id="perfMmap" />
+                                    Memory-Map Model <span class="hint">(--mmap)</span>
+                                </label>
+                                <p class="field-note">Stream weights from disk via OS mmap to reduce RAM usage.</p>
+                            </div>
+                        </div>
+
+                        <div class="field-row">
+                            <label class="inline">
+                                <input type="checkbox" id="perfForceCpuBackend" />
+                                <strong>Force CPU-Only Mode</strong> <span class="hint">(--backend cpu)</span>
+                            </label>
+                            <p class="field-note">Run all inference on CPU for PCs without a supported GPU or when CUDA/Vulkan fails.</p>
+                        </div>
+
+                        <div class="field-grid">
+                            <div class="field-row">
+                                <label>Weight Quantization / Precision <span class="hint">(--type)</span></label>
+                                <select id="perfWeightType">
+                                    <option value="auto">auto — use model file's native type</option>
+                                    <option value="f16">f16 — half precision</option>
+                                    <option value="q8_0">q8_0 — 8-bit (~50% less VRAM)</option>
+                                    <option value="q5_0">q5_0 — 5-bit</option>
+                                    <option value="q4_K">q4_K — 4-bit K-quant (best low-VRAM)</option>
+                                    <option value="q4_0">q4_0 — 4-bit legacy</option>
+                                    <option value="q3_K">q3_K — 3-bit K-quant</option>
+                                    <option value="q2_K">q2_K — 2-bit ultra-small</option>
+                                    <option value="f32">f32 — full precision</option>
+                                </select>
+                                <p class="field-note">Quantize unquantized models on load to fit smaller GPUs.</p>
+                            </div>
+
+                            <div class="field-row">
+                                <label>Custom Backend Assignment <span class="hint">(--backend)</span></label>
+                                <input type="text" id="perfCustomBackend" placeholder="e.g. clip=cpu,vae=cuda0,diffusion=vulkan0" />
+                                <p class="field-note">Optional explicit module-to-device mapping.</p>
+                            </div>
                         </div>
                     </section>
                 </div>

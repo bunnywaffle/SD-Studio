@@ -157,6 +157,17 @@ const el = {
     perfSageAttn: document.getElementById('perfSageAttn'),
     perfDisablePrefetch: document.getElementById('perfDisablePrefetch'),
     perfDisableSegmentedCompute: document.getElementById('perfDisableSegmentedCompute'),
+    perfTeOnCpu: document.getElementById('perfTeOnCpu'),
+    perfVaeOnCpu: document.getElementById('perfVaeOnCpu'),
+    perfControlNetOnCpu: document.getElementById('perfControlNetOnCpu'),
+    perfMmap: document.getElementById('perfMmap'),
+    perfForceCpuBackend: document.getElementById('perfForceCpuBackend'),
+    perfWeightType: document.getElementById('perfWeightType'),
+    perfCustomBackend: document.getElementById('perfCustomBackend'),
+    btnPresetBalanced: document.getElementById('btnPresetBalanced'),
+    btnPresetLowVram: document.getElementById('btnPresetLowVram'),
+    btnPresetUltraLow: document.getElementById('btnPresetUltraLow'),
+    btnPresetCpuOnly: document.getElementById('btnPresetCpuOnly'),
     genVaeTiling: document.getElementById('genVaeTiling'),
 
     // Gallery view modes (Grid vs Big Picture)
@@ -2026,6 +2037,13 @@ function collectSettingsFromUi() {
         sageAttn: el.perfSageAttn ? el.perfSageAttn.checked : (settings.sageAttn || false),
         disablePrefetch: el.perfDisablePrefetch ? el.perfDisablePrefetch.checked : (settings.disablePrefetch || false),
         disableSegmentedCompute: el.perfDisableSegmentedCompute ? el.perfDisableSegmentedCompute.checked : (settings.disableSegmentedCompute || false),
+        mmap: el.perfMmap ? el.perfMmap.checked : !!settings.mmap,
+        weightType: el.perfWeightType ? el.perfWeightType.value : (settings.weightType || 'auto'),
+        teOnCpu: el.perfTeOnCpu ? el.perfTeOnCpu.checked : !!settings.teOnCpu,
+        vaeOnCpu: el.perfVaeOnCpu ? el.perfVaeOnCpu.checked : !!settings.vaeOnCpu,
+        controlNetOnCpu: el.perfControlNetOnCpu ? el.perfControlNetOnCpu.checked : !!settings.controlNetOnCpu,
+        forceCpuBackend: el.perfForceCpuBackend ? el.perfForceCpuBackend.checked : !!settings.forceCpuBackend,
+        customBackend: el.perfCustomBackend ? el.perfCustomBackend.value.trim() : (settings.customBackend || ''),
         galleryViewMode: galleryViewMode || settings.galleryViewMode || 'grid',
         outputDir: el.outputDirInput ? el.outputDirInput.value.trim() : (settings.outputDir || ''),
         autoSave: el.settingAutoSave ? el.settingAutoSave.checked : !!settings.autoSave,
@@ -2082,6 +2100,13 @@ function applySettingsToUi() {
     if (el.perfSageAttn) el.perfSageAttn.checked = !!settings.sageAttn;
     if (el.perfDisablePrefetch) el.perfDisablePrefetch.checked = !!settings.disablePrefetch;
     if (el.perfDisableSegmentedCompute) el.perfDisableSegmentedCompute.checked = !!settings.disableSegmentedCompute;
+    if (el.perfMmap) el.perfMmap.checked = !!settings.mmap;
+    if (el.perfWeightType) el.perfWeightType.value = settings.weightType || 'auto';
+    if (el.perfTeOnCpu) el.perfTeOnCpu.checked = !!settings.teOnCpu;
+    if (el.perfVaeOnCpu) el.perfVaeOnCpu.checked = !!settings.vaeOnCpu;
+    if (el.perfControlNetOnCpu) el.perfControlNetOnCpu.checked = !!settings.controlNetOnCpu;
+    if (el.perfForceCpuBackend) el.perfForceCpuBackend.checked = !!settings.forceCpuBackend;
+    if (el.perfCustomBackend) el.perfCustomBackend.value = settings.customBackend || '';
     if (el.genVaeTiling) el.genVaeTiling.checked = !!settings.vaeTiling;
 
     if (settings.galleryViewMode) {
@@ -2369,6 +2394,37 @@ function bindEvents() {
     }
 
     // Quick VAE Tiling toggle
+    const applyHardwarePreset = async (name, patch) => {
+        Object.assign(settings, patch);
+        applySettingsToUi();
+        await api.setSettings(patch);
+        setGenStatus(`Applied "${name}" preset — restart server to apply.`, 'done');
+    };
+    if (el.btnPresetBalanced) {
+        el.btnPresetBalanced.addEventListener('click', () => applyHardwarePreset('Balanced', {
+            flashAttn: 'auto', vaeTiling: false, offloadToCpu: false, paramsBackend: 'auto',
+            maxVram: '', mmap: false, teOnCpu: false, vaeOnCpu: false, controlNetOnCpu: false, forceCpuBackend: false
+        }));
+    }
+    if (el.btnPresetLowVram) {
+        el.btnPresetLowVram.addEventListener('click', () => applyHardwarePreset('Low VRAM (4-8 GB)', {
+            flashAttn: 'on', vaeTiling: true, offloadToCpu: true, paramsBackend: 'cpu',
+            maxVram: '-1', mmap: false, teOnCpu: true, vaeOnCpu: false, controlNetOnCpu: true, forceCpuBackend: false
+        }));
+    }
+    if (el.btnPresetUltraLow) {
+        el.btnPresetUltraLow.addEventListener('click', () => applyHardwarePreset('Ultra-Low VRAM / RAM', {
+            flashAttn: 'on', vaeTiling: true, offloadToCpu: true, paramsBackend: 'disk',
+            maxVram: '-1', mmap: true, teOnCpu: true, vaeOnCpu: true, controlNetOnCpu: true, forceCpuBackend: false
+        }));
+    }
+    if (el.btnPresetCpuOnly) {
+        el.btnPresetCpuOnly.addEventListener('click', () => applyHardwarePreset('CPU-Only PC', {
+            flashAttn: 'auto', vaeTiling: true, offloadToCpu: false, paramsBackend: 'auto',
+            maxVram: '', mmap: true, teOnCpu: false, vaeOnCpu: false, controlNetOnCpu: false, forceCpuBackend: true
+        }));
+    }
+
     if (el.genVaeTiling) {
         el.genVaeTiling.addEventListener('change', () => {
             const val = el.genVaeTiling.checked;

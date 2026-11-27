@@ -637,6 +637,32 @@ class BackendManager {
             args.push('--threads', String(threads));
         }
 
+        // Low-end GPU & low-RAM PC options
+        if (!hasExtra('--mmap') && this.settings.get('mmap')) {
+            args.push('--mmap');
+        }
+
+        const weightType = this.settings.get('weightType');
+        if (!hasExtra('--type') && weightType && weightType !== 'auto') {
+            args.push('--type', weightType);
+        }
+
+        if (!hasExtra('--backend')) {
+            if (this.settings.get('forceCpuBackend')) {
+                args.push('--backend', 'cpu');
+            } else {
+                const backendParts = [];
+                if (this.settings.get('teOnCpu')) backendParts.push('te=cpu');
+                if (this.settings.get('vaeOnCpu')) backendParts.push('vae=cpu');
+                if (this.settings.get('controlNetOnCpu')) backendParts.push('controlnet=cpu');
+                const customBackend = String(this.settings.get('customBackend') || '').trim();
+                if (customBackend) backendParts.push(customBackend);
+                if (backendParts.length > 0) {
+                    args.push('--backend', backendParts.join(','));
+                }
+            }
+        }
+
         args.push('--listen-ip', host);
         args.push('--listen-port', String(port));
 

@@ -65,6 +65,15 @@ class SettingsStore {
             threads: -1,
             sageAttn: false,
 
+            // Low-end GPU / Low-RAM PC options
+            mmap: false,
+            weightType: 'auto',
+            teOnCpu: false,
+            vaeOnCpu: false,
+            controlNetOnCpu: false,
+            forceCpuBackend: false,
+            customBackend: '',
+
             // Gallery view mode ('grid' | 'big') and Output / Auto-save
             galleryViewMode: 'grid',
             outputDir: '',
