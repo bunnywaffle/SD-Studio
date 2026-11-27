@@ -1294,7 +1294,13 @@ async function pollJob() {
         } else if (job.status === 'failed') {
             stopPolling();
             hideProgress();
-            const msg = job.error && (job.error.message || job.error.code) ? (job.error.message || job.error.code) : 'Generation failed';
+            let msg = job.error && (job.error.message || job.error.code) ? (job.error.message || job.error.code) : 'Generation failed';
+            const recentLogs = (backendState.logs || []).slice(-20).map((l) => l.message || '').join('\n');
+            if (/ram weight capacity exceeded/i.test(recentLogs)) {
+                msg += ' — Not enough free system RAM! In Settings → Performance, set Params Backend to "auto" (uses GPU VRAM) or "disk" + enable Memory-Map (--mmap), then restart the server.';
+            } else if (/out of memory|cudaerror|vram/i.test(recentLogs)) {
+                msg += ' — Out of GPU VRAM! Enable Flash Attention, VAE Tiling, and Text Encoder on CPU (or Params Backend: disk) in Settings → Performance, then restart the server.';
+            }
             setGenStatus(msg, 'error');
             setBusy(false);
         } else if (job.status === 'cancelled') {
@@ -2408,7 +2414,7 @@ function bindEvents() {
     }
     if (el.btnPresetLowVram) {
         el.btnPresetLowVram.addEventListener('click', () => applyHardwarePreset('Low VRAM (4-8 GB)', {
-            flashAttn: 'on', vaeTiling: true, offloadToCpu: true, paramsBackend: 'cpu',
+            flashAttn: 'on', vaeTiling: true, offloadToCpu: true, paramsBackend: 'auto',
             maxVram: '-1', mmap: false, teOnCpu: true, vaeOnCpu: false, controlNetOnCpu: true, forceCpuBackend: false
         }));
     }
